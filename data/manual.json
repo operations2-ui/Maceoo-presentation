@@ -1,0 +1,36 @@
+{
+  "_comment": "Sections of the deck with no live connector. Fill these in and re-run tools/build_dashboard.py. Structure mirrors slides 23-29, 32 and 33 of MACEOO_NEW_PRESENTATION.pptx.",
+  "endear": {
+    "source": "Endear",
+    "status": "not_connected",
+    "note": "Endear has no connector in this session. Export the clienteling report and paste rows below, or connect Endear and the refresh will pull it.",
+    "segments": [
+      { "segment": "3 Month Customer", "store": "", "total_clients": null, "contacted": null, "idle": null, "avg_texts_per_conversation": null },
+      { "segment": "Hot Client", "store": "", "total_clients": null, "contacted": null, "idle": null, "avg_texts_per_conversation": null }
+    ]
+  },
+  "vcount": {
+    "source": "V-Count + Homebase schedules",
+    "status": "not_connected",
+    "note": "Door-counter traffic is the denominator for true conversion rate. Shopify supplies the numerator (orders) already shown in each store card.",
+    "rows": []
+  },
+  "homebase": {
+    "source": "Homebase",
+    "status": "not_connected",
+    "note": "Hours worked per salesperson turns the sales column into sales per hour. Paste hours by salesperson to activate the productivity column.",
+    "rows": []
+  },
+  "merchandising": {
+    "source": "Google Drive + store photography",
+    "status": "manual",
+    "sheet_url": "https://docs.google.com/spreadsheets/d/13tRrgHj0CrVrQIhowiIDNkR8VGmD8yGR8zpPq_5Z6rg/edit?gid=561903800#gid=561903800",
+    "note": "Front-of-house and back-of-house standards live in the mathematical retail sheet. The category matrix below is the live half of that plan."
+  },
+  "marketing": {
+    "source": "Drive calendar",
+    "status": "manual",
+    "note": "Add campaigns, events and celebrity placements here to have them appear on the calendar rail.",
+    "events": []
+  }
+}

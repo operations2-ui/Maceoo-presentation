@@ -1,0 +1,1192 @@
+<title>Maceoo Retail Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --page:#f4f3ef; --surface:#fffefb; --surface-2:#eceae2; --sunken:#e4e1d7;
+  --ink:#16160f; --ink-2:#55534a; --muted:#87847a;
+  --hairline:#e0ddd2; --rule:#cbc7b8;
+  --accent:#25384f; --accent-ink:#25384f; --accent-soft:#e6ebf1;
+  --brass:#96701f;
+  --good:#0ca30c; --good-ink:#006300; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --crit-ink:#b02b2b;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --grid:#e1e0d9; --axis:#c3c2b7;
+  --shadow:0 1px 2px rgba(22,22,15,.05), 0 8px 24px -16px rgba(22,22,15,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page:#0e0f11; --surface:#17181b; --surface-2:#202226; --sunken:#121315;
+    --ink:#f6f5f0; --ink-2:#b9b6aa; --muted:#8b887d;
+    --hairline:#292b2f; --rule:#3b3e43;
+    --accent:#9fbde0; --accent-ink:#9fbde0; --accent-soft:#1c2733;
+    --brass:#cfa447;
+    --good:#0ca30c; --good-ink:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --crit-ink:#e06a6a;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+    --grid:#2c2c2a; --axis:#383835;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --page:#0e0f11; --surface:#17181b; --surface-2:#202226; --sunken:#121315;
+  --ink:#f6f5f0; --ink-2:#b9b6aa; --muted:#8b887d;
+  --hairline:#292b2f; --rule:#3b3e43;
+  --accent:#9fbde0; --accent-ink:#9fbde0; --accent-soft:#1c2733;
+  --brass:#cfa447;
+  --good:#0ca30c; --good-ink:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --crit-ink:#e06a6a;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  --grid:#2c2c2a; --axis:#383835;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--page); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:Archivo,system-ui,sans-serif; margin:0; text-wrap:balance; letter-spacing:-.01em}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent-ink); outline-offset:2px; border-radius:3px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-family:Archivo,sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+}
+
+/* ---------- masthead ---------- */
+.mast{
+  position:sticky; top:0; z-index:40; background:var(--surface);
+  border-bottom:1px solid var(--hairline);
+}
+.mast-inner{max-width:1320px; margin:0 auto; padding:0 16px}
+.mast-top{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; padding-block:14px 10px}
+.wordmark{font-family:Archivo,sans-serif; font-weight:700; font-size:19px; letter-spacing:.2em; text-transform:uppercase}
+.wordmark span{color:var(--brass)}
+.mast-sub{font-size:12.5px; color:var(--ink-2)}
+.mast-meta{margin-left:auto; display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:11.5px; color:var(--muted)}
+.mast-meta b{color:var(--ink-2); font-weight:500}
+
+/* store switcher */
+.switch{display:flex; gap:10px; align-items:center; padding-bottom:10px}
+.chips{
+  display:flex; gap:6px; overflow-x:auto; padding:2px 2px 6px; flex:1; scrollbar-width:thin;
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);
+  mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);
+}
+.chip{
+  flex:0 0 auto; border:1px solid var(--hairline); background:var(--surface-2);
+  color:var(--ink-2); border-radius:999px; padding:5px 12px; font-size:12.5px;
+  font-weight:500; cursor:pointer; white-space:nowrap; font-family:inherit;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.chip:hover{border-color:var(--rule); color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--surface); font-weight:600}
+:root[data-theme="dark"] .chip[aria-pressed="true"],
+:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0e0f11}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .chip[aria-pressed="true"]{color:#fffefb}}
+.chip .dot{display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; background:var(--brass)}
+.seg{display:flex; border:1px solid var(--hairline); border-radius:8px; overflow:hidden; flex:0 0 auto; background:var(--surface-2)}
+.seg button{
+  border:0; background:transparent; font-family:Archivo,sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--ink-2); padding:7px 12px; cursor:pointer;
+}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--surface)}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0e0f11}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0e0f11}}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .seg button[aria-pressed="true"]{color:#fffefb}}
+
+/* ---------- shell ---------- */
+.shell{max-width:1320px; margin:0 auto; padding:0 16px 80px; display:grid; grid-template-columns:188px minmax(0,1fr); gap:32px}
+@media (max-width:980px){ .shell{grid-template-columns:minmax(0,1fr); gap:0} .rail{display:none} }
+.rail{position:sticky; top:132px; align-self:start; padding-top:28px}
+.rail ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
+.rail a{
+  display:grid; grid-template-columns:18px 1fr; gap:8px; align-items:baseline;
+  text-decoration:none; color:var(--ink-2); font-size:12.5px; padding:6px 8px;
+  border-left:2px solid transparent; border-radius:0 4px 4px 0;
+}
+.rail a:hover{background:var(--surface-2); color:var(--ink)}
+.rail a.on{border-left-color:var(--brass); color:var(--ink); font-weight:600; background:var(--surface-2)}
+.rail .n{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted)}
+.rail .foot{margin-top:22px; padding:10px 8px 0; border-top:1px solid var(--hairline); font-size:11px; color:var(--muted); line-height:1.6}
+
+/* ---------- sections ---------- */
+section{padding-block:34px 4px; scroll-margin-top:140px}
+section + section{border-top:1px solid var(--hairline)}
+.sec-head{display:flex; align-items:flex-start; gap:14px; margin-bottom:18px}
+.sec-num{
+  font-family:Archivo,sans-serif; font-weight:700; font-size:12px; color:var(--surface);
+  background:var(--accent); width:26px; height:26px; border-radius:5px;
+  display:grid; place-items:center; flex:0 0 auto; margin-top:2px;
+}
+:root[data-theme="dark"] .sec-num{color:#0e0f11}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sec-num{color:#0e0f11}}
+.sec-head h2{font-size:21px; font-weight:600; line-height:1.25}
+.sec-head p{margin:3px 0 0; font-size:12.5px; color:var(--ink-2); max-width:66ch}
+.src{font-size:11px; color:var(--muted); margin-top:5px}
+.src b{font-weight:500; color:var(--ink-2)}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1px; background:var(--hairline); border:1px solid var(--hairline); border-radius:10px; overflow:hidden; margin-bottom:22px}
+.tile{background:var(--surface); padding:14px 16px 15px; display:flex; flex-direction:column; gap:3px; min-width:0}
+.tile .k{font-family:Archivo,sans-serif; font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+.tile .v{font-family:"IBM Plex Mono",monospace; font-size:20px; font-weight:500; letter-spacing:-.02em; line-height:1.15; color:var(--ink)}
+.tile .sub{font-size:11.5px; color:var(--muted)}
+@media (min-width:900px){ .tiles{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.delta{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:12px; font-weight:500}
+.up{color:var(--good-ink)} .down{color:var(--crit-ink)} .flat{color:var(--muted)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface); border:1px solid var(--hairline); border-radius:10px; padding:16px 18px 18px; min-width:0}
+.card > h3{font-size:14px; font-weight:600; margin-bottom:2px}
+.card > .cap{font-size:11.5px; color:var(--muted); margin:0 0 14px}
+.grid2{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:16px; margin-bottom:18px}
+.grid-even{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; margin-bottom:18px}
+@media (max-width:820px){ .grid2{grid-template-columns:minmax(0,1fr)} }
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto; margin:0 -18px -18px; padding:0 18px 4px}
+table{border-collapse:collapse; width:100%; font-size:12.5px}
+th,td{padding:7px 10px; text-align:right; white-space:nowrap; border-bottom:1px solid var(--hairline)}
+th:first-child,td:first-child{text-align:left; padding-left:0; white-space:normal; min-width:132px}
+th:last-child,td:last-child{padding-right:0}
+thead th{
+  font-family:Archivo,sans-serif; font-size:10px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--rule); padding-block:6px;
+  position:sticky; top:0; background:var(--surface);
+}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+td .name{font-weight:500}
+td .where{font-size:11px; color:var(--muted); display:block}
+.rank{color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; width:22px; padding-right:4px !important; text-align:right !important; min-width:0 !important}
+table.ranked th:nth-child(2), table.ranked td:nth-child(2){text-align:left; white-space:normal; min-width:140px}
+.barcell{width:96px; min-width:96px}
+.bar{height:7px; border-radius:0 3px 3px 0; background:var(--s1); display:block}
+.bar.alt{background:var(--s2)}
+.bartrack{background:var(--sunken); border-radius:3px; overflow:hidden; height:7px}
+
+/* pills */
+.pill{display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; font-family:Archivo,sans-serif; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:4px; border:1px solid}
+.pill.refill{color:var(--good-ink); border-color:var(--good); background:color-mix(in srgb,var(--good) 10%, transparent)}
+.pill.healthy{color:var(--ink-2); border-color:var(--rule); background:var(--surface-2)}
+.pill.overstocked{color:var(--serious); border-color:var(--serious); background:color-mix(in srgb,var(--serious) 12%, transparent)}
+.pill.no_movement{color:var(--crit-ink); border-color:var(--crit); background:color-mix(in srgb,var(--crit) 10%, transparent)}
+.pill.check_count{color:var(--brass); border-color:var(--warn); background:color-mix(in srgb,var(--warn) 14%, transparent)}
+
+/* ---------- charts ---------- */
+.chartwrap{position:relative}
+svg.chart{display:block; width:100%; height:auto; overflow:visible}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-2); margin-bottom:10px}
+.legend i{display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+.tip{
+  position:absolute; pointer-events:none; opacity:0; transition:opacity .09s;
+  background:var(--surface); border:1px solid var(--rule); border-radius:7px; box-shadow:var(--shadow);
+  padding:8px 10px; font-size:11.5px; min-width:130px; z-index:5;
+}
+.tip .t{font-family:Archivo,sans-serif; font-weight:600; font-size:11px; margin-bottom:4px}
+.tip .r{display:flex; justify-content:space-between; gap:14px}
+.tip .r span:last-child{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- callouts ---------- */
+.spot{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-bottom:18px}
+.spot .card{border-top:3px solid var(--brass)}
+.spot .who{font-family:Archivo,sans-serif; font-size:17px; font-weight:600; margin:6px 0 1px}
+.spot .why{font-size:12px; color:var(--ink-2)}
+.spot dl{display:grid; grid-template-columns:1fr auto; gap:4px 12px; margin:12px 0 0; font-size:12px}
+.spot dt{color:var(--muted)} .spot dd{margin:0; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+.note{
+  border:1px dashed var(--rule); border-radius:9px; padding:14px 16px; background:var(--surface);
+  font-size:12.5px; color:var(--ink-2);
+}
+.note h4{font-size:13px; font-weight:600; margin-bottom:5px; color:var(--ink)}
+.note code{font-family:"IBM Plex Mono",monospace; font-size:11.5px; background:var(--surface-2); padding:1px 5px; border-radius:3px}
+.note ul{margin:8px 0 0; padding-left:18px} .note li{margin-bottom:3px}
+.empty{color:var(--muted); font-size:12.5px; padding:18px 0; text-align:center}
+</style>
+
+<header class="mast">
+  <div class="mast-inner">
+    <div class="mast-top">
+      <div class="wordmark">Mace<span>oo</span></div>
+      <div class="mast-sub">Retail statistics &amp; performance</div>
+      <div class="mast-meta">
+        <span>Data through <b id="m-through"></b></span>
+        <span>Refreshed <b id="m-gen"></b></span>
+        <span>Shopify <span aria-hidden="true">&middot;</span> NetSuite</span>
+      </div>
+    </div>
+    <div class="switch">
+      <div class="chips" id="chips" role="group" aria-label="Choose a store"></div>
+      <div class="seg" role="group" aria-label="Reporting period">
+        <button type="button" id="p-mtd" data-period="mtd">Month to date</button>
+        <button type="button" id="p-ytd" data-period="ytd">Year to date</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Report sections">
+    <ol id="rail"></ol>
+    <div class="foot" id="rail-foot"></div>
+  </nav>
+
+  <main>
+    <!-- 1 -->
+    <section id="s1">
+      <div class="sec-head">
+        <div class="sec-num">1</div>
+        <div>
+          <h2>Overall performance</h2>
+          <p>Net sales, orders, units per transaction, average order value and customer mix against the same window last year.</p>
+          <div class="src">Source: <b>Shopify</b> sales schema, POS location dimension</div>
+        </div>
+      </div>
+      <div class="tiles" id="kpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <h3 id="trend-title">Net sales by month</h3>
+          <p class="cap" id="trend-cap"></p>
+          <div class="legend">
+            <span><i style="background:var(--s1)"></i>This year</span>
+            <span><i style="background:var(--s2)"></i>Last year</span>
+          </div>
+          <div class="chartwrap"><svg class="chart" id="trend" role="img" aria-label="Net sales by month, this year against last year"></svg><div class="tip" id="trend-tip"></div></div>
+        </div>
+        <div class="card">
+          <h3>Customer mix</h3>
+          <p class="cap" id="mix-cap"></p>
+          <div class="legend">
+            <span><i style="background:var(--s3)"></i>Returning</span>
+            <span><i style="background:var(--s4)"></i>New</span>
+          </div>
+          <div class="chartwrap"><svg class="chart" id="mix" role="img" aria-label="New against returning customers, this year and last year"></svg><div class="tip" id="mix-tip"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Every location, ranked</h3>
+        <p class="cap" id="storetable-cap"></p>
+        <div class="tw"><table class="ranked" id="storetable"></table></div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section id="s2">
+      <div class="sec-head">
+        <div class="sec-num">2</div>
+        <div>
+          <h2>Salespeople and store performance</h2>
+          <p>Every salesperson ranked on net sales, with units per transaction, average order value and order count against last year.</p>
+          <div class="src">Source: <b>Shopify POS</b> staff member on the order. Hours worked and clienteling activity need Homebase and Endear, flagged below.</div>
+        </div>
+      </div>
+      <div class="spot" id="spotlight"></div>
+      <div class="card">
+        <h3>Salesperson leaderboard</h3>
+        <p class="cap" id="staff-cap"></p>
+        <div class="tw"><table class="ranked" id="stafftable"></table></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section id="s3">
+      <div class="sec-head">
+        <div class="sec-num">3</div>
+        <div>
+          <h2>Endear clienteling</h2>
+          <p>Clients contacted, segment coverage, idle clients and conversation depth per store and per salesperson.</p>
+          <div class="src">Source: <b>Endear</b></div>
+        </div>
+      </div>
+      <div id="endear"></div>
+    </section>
+
+    <!-- 4 -->
+    <section id="s4">
+      <div class="sec-head">
+        <div class="sec-num">4</div>
+        <div>
+          <h2>Conversion rate</h2>
+          <p>Door traffic against transactions, by store, by shift and by salesperson.</p>
+          <div class="src">Source: <b>V-Count</b> door counters and <b>Homebase</b> schedules, joined to Shopify orders</div>
+        </div>
+      </div>
+      <div class="grid-even" id="conv-live"></div>
+      <div id="conv-note"></div>
+    </section>
+
+    <!-- 5 -->
+    <section id="s5">
+      <div class="sec-head">
+        <div class="sec-num">5</div>
+        <div>
+          <h2>Client behaviour</h2>
+          <p>Spend and basket per client, repeat rate, and the growing against shrinking split by location.</p>
+          <div class="src">Source: <b>Shopify</b> sales schema, customer dimension</div>
+        </div>
+      </div>
+      <div class="grid-even" id="behaviour"></div>
+      <div class="card">
+        <h3>Repeat rate and spend per client, by location</h3>
+        <p class="cap" id="client-cap"></p>
+        <div class="tw"><table class="ranked" id="clienttable"></table></div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="s6">
+      <div class="sec-head">
+        <div class="sec-num">6</div>
+        <div>
+          <h2>Inventory and refill</h2>
+          <p>Stock value against last year, the category matrix with sell-through, and the open purchase order pipeline behind it.</p>
+          <div class="src">Source: <b>Shopify</b> inventory by location and <b>NetSuite</b> purchase orders</div>
+        </div>
+      </div>
+      <div class="tiles" id="inv-kpis"></div>
+      <div class="card" style="margin-bottom:18px">
+        <h3>Category matrix and refill signal</h3>
+        <p class="cap" id="matrix-cap"></p>
+        <div class="tw"><table id="matrix"></table></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Open purchase orders by vendor</h3>
+          <p class="cap" id="po-cap"></p>
+          <div class="tw"><table id="potable"></table></div>
+        </div>
+        <div class="card">
+          <h3>Purchase order pipeline</h3>
+          <p class="cap">Every 2026 purchase order by status. Pending receipt is stock already bought and not yet in a door.</p>
+          <div class="chartwrap"><svg class="chart" id="postatus" role="img" aria-label="Purchase order value by status"></svg><div class="tip" id="po-tip"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section id="s7">
+      <div class="sec-head">
+        <div class="sec-num">7</div>
+        <div>
+          <h2>Mathematical merchandising</h2>
+          <p>Where the floor space goes against where the money comes from. A category carrying more of the stock than of the sales is taking room it has not earned.</p>
+          <div class="src">Source: <b>Shopify</b> inventory and sales by category, against the front and back of house standards in Drive</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <h3>Share of stock against share of sales</h3>
+        <p class="cap" id="merch-cap"></p>
+        <div class="tw"><table id="merchtable"></table></div>
+      </div>
+      <div id="merch-note"></div>
+    </section>
+
+    <!-- 8 -->
+    <section id="s8">
+      <div class="sec-head">
+        <div class="sec-num">8</div>
+        <div>
+          <h2>Marketing events and calendar</h2>
+          <p>Pipeline, paid media, events, celebrity placements and the posting calendar for this month and next.</p>
+          <div class="src">Source: <b>Drive calendar</b></div>
+        </div>
+      </div>
+      <div id="marketing"></div>
+    </section>
+  </main>
+</div>
+
+<script type="application/json" id="dashboard-data">__DASHBOARD_DATA__</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById("dashboard-data").textContent);
+var ALL = "__ALL_LOCATIONS__";
+var state = { store: ALL, period: "ytd" };
+
+/* ---------- formatting ---------- */
+function money(n){
+  if (n === null || n === undefined) return "—";
+  var a = Math.abs(n), s = n < 0 ? "−" : "";
+  if (a >= 1e6) return s + "$" + (a/1e6).toFixed(2) + "M";
+  if (a >= 1e3) return s + "$" + Math.round(a/1e3) + "K";
+  return s + "$" + a.toFixed(0);
+}
+function money0(n){
+  if (n === null || n === undefined) return "—";
+  var s = n < 0 ? "−" : "";
+  return s + "$" + Math.abs(n).toLocaleString("en-US",{maximumFractionDigits:0});
+}
+function money2(n){
+  if (n === null || n === undefined) return "—";
+  var s = n < 0 ? "−" : "";
+  return s + "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function int(n){
+  if (n === null || n === undefined) return "—";
+  return Math.round(n).toLocaleString("en-US");
+}
+function pct(ty, ly){
+  if (!ly) return null;
+  return (ty - ly) / Math.abs(ly) * 100;
+}
+function pctText(p){
+  if (p === null || p === undefined || !isFinite(p)) return "new";
+  var sign = p > 0 ? "+" : p < 0 ? "−" : "";
+  var a = Math.abs(p);
+  return sign + (a >= 100 ? Math.round(a) : a.toFixed(1)) + "%";
+}
+function pctClass(p){
+  if (p === null || p === undefined || !isFinite(p)) return "flat";
+  return p > 0.05 ? "up" : p < -0.05 ? "down" : "flat";
+}
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+/* ---------- selection ---------- */
+function isAll(){ return state.store === ALL; }
+function label(){ return isAll() ? "All locations" : state.store; }
+function keys(){
+  return state.period === "ytd"
+    ? { ty:"ytd_ty", ly:"ytd_ly" }
+    : { ty:"mtd_ty", ly:"mtd_ly" };
+}
+function block(){ return isAll() ? D.company : D.by_store[state.store]; }
+function P(which){ return block().periods[keys()[which]]; }
+function periodLabel(which){ return D.meta.periods[keys()[which]].label; }
+
+/* ---------- masthead ---------- */
+document.getElementById("m-through").textContent =
+  new Date(D.meta.periods.ytd_ty.until + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+document.getElementById("m-gen").textContent =
+  new Date(D.meta.generated_at + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+
+/* store chips, ordered by YTD net sales */
+(function buildChips(){
+  var box = document.getElementById("chips");
+  var ordered = D.stores.all.slice().sort(function(a,b){
+    return D.by_store[b].periods.ytd_ty.net_sales - D.by_store[a].periods.ytd_ty.net_sales;
+  });
+  var names = [ALL].concat(ordered);
+  names.forEach(function(name){
+    var b = el("button","chip");
+    b.type = "button";
+    b.dataset.store = name;
+    b.setAttribute("aria-pressed", name === state.store ? "true" : "false");
+    if (name === ALL){
+      b.innerHTML = '<span class="dot"></span>All locations';
+    } else {
+      b.textContent = name.replace(/^Maceoo /,"");
+      b.title = name;
+    }
+    b.addEventListener("click", function(){ setStore(name); });
+    box.appendChild(b);
+  });
+  box.addEventListener("keydown", function(e){
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    var i = names.indexOf(state.store);
+    i += e.key === "ArrowRight" ? 1 : -1;
+    if (i < 0) i = names.length - 1;
+    if (i >= names.length) i = 0;
+    setStore(names[i]);
+    box.querySelector('[data-store="' + CSS.escape(names[i]) + '"]').focus();
+    e.preventDefault();
+  });
+})();
+
+function setStore(name){
+  state.store = name;
+  document.querySelectorAll("#chips .chip").forEach(function(c){
+    var on = c.dataset.store === name;
+    c.setAttribute("aria-pressed", on ? "true" : "false");
+    if (on) c.scrollIntoView({block:"nearest", inline:"nearest"});
+  });
+  render();
+}
+["mtd","ytd"].forEach(function(p){
+  document.getElementById("p-" + p).addEventListener("click", function(){
+    state.period = p;
+    document.getElementById("p-mtd").setAttribute("aria-pressed", p === "mtd" ? "true":"false");
+    document.getElementById("p-ytd").setAttribute("aria-pressed", p === "ytd" ? "true":"false");
+    render();
+  });
+});
+document.getElementById("p-ytd").setAttribute("aria-pressed","true");
+document.getElementById("p-mtd").setAttribute("aria-pressed","false");
+
+/* rail */
+(function buildRail(){
+  var items = [
+    [1,"Overall performance"],[2,"Salespeople"],[3,"Endear clienteling"],
+    [4,"Conversion rate"],[5,"Client behaviour"],[6,"Inventory and refill"],
+    [7,"Merchandising"],[8,"Marketing calendar"]
+  ];
+  var ol = document.getElementById("rail");
+  items.forEach(function(it){
+    var li = el("li"), a = el("a");
+    a.href = "#s" + it[0];
+    a.innerHTML = '<span class="n">' + it[0] + '</span><span>' + esc(it[1]) + '</span>';
+    li.appendChild(a); ol.appendChild(li);
+  });
+  var links = Array.prototype.slice.call(ol.querySelectorAll("a"));
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      links.forEach(function(l){ l.classList.toggle("on", l.getAttribute("href") === "#" + en.target.id); });
+    });
+  }, { rootMargin: "-140px 0px -60% 0px" });
+  document.querySelectorAll("main section").forEach(function(s){ obs.observe(s); });
+  document.getElementById("rail-foot").innerHTML =
+    "Live: Shopify sales, customers, inventory. NetSuite purchasing.<br><br>" +
+    "Manual: Endear, V-Count, Homebase, Drive calendar.";
+})();
+
+/* ---------- section 1 ---------- */
+function renderKpis(){
+  var ty = P("ty"), ly = P("ly"), box = document.getElementById("kpis");
+  var inv = block().inventory;
+  var rows = [
+    ["Net sales", money0(ty.net_sales), pct(ty.net_sales, ly.net_sales), money0(ly.net_sales) + " last year"],
+    ["Orders", int(ty.orders), pct(ty.orders, ly.orders), int(ly.orders) + " last year"],
+    ["Units per transaction", ty.upt.toFixed(2), pct(ty.upt, ly.upt), ly.upt.toFixed(2) + " last year"],
+    ["Average order value", money0(ty.aov), pct(ty.aov, ly.aov), money0(ly.aov) + " last year"],
+    ["Returning clients", int(ty.returning_customers), pct(ty.returning_customers, ly.returning_customers), int(ty.new_customers) + " new"],
+    ["Discounts", money0(ty.discounts), pct(ty.discounts, ly.discounts),
+      (ty.gross_sales ? (ty.discounts/ty.gross_sales*100).toFixed(1) : "0") + "% of gross"],
+    ["Returns", money0(ty.returns), pct(ty.returns, ly.returns),
+      (ty.gross_sales ? (ty.returns/ty.gross_sales*100).toFixed(1) : "0") + "% of gross"],
+    ["Stock on hand", inv && inv.ty ? money(inv.ty.retail_value) : "—",
+      inv && inv.ty && inv.ly ? pct(inv.ty.retail_value, inv.ly.retail_value) : null, "retail value, today"]
+  ];
+  box.innerHTML = "";
+  rows.forEach(function(r){
+    var t = el("div","tile");
+    t.appendChild(el("div","k", r[0]));
+    t.appendChild(el("div","v", r[1]));
+    var line = el("div","sub");
+    var d = el("span","delta " + pctClass(r[2]), pctText(r[2]));
+    line.appendChild(d);
+    line.appendChild(document.createTextNode("  " + r[3]));
+    t.appendChild(line);
+    box.appendChild(t);
+  });
+}
+
+/* line chart: this year against last year, aligned by month of year */
+function renderTrend(){
+  var trend = block().trend;
+  var thisYear = D.meta.periods.ytd_ty.since.slice(0,4);
+  var lastYear = D.meta.periods.ytd_ly.since.slice(0,4);
+  var ty = [], ly = [];
+  for (var m = 1; m <= 12; m++){
+    var mm = (m < 10 ? "0" : "") + m;
+    var a = trend.filter(function(r){ return r.month === thisYear + "-" + mm; })[0];
+    var b = trend.filter(function(r){ return r.month === lastYear + "-" + mm; })[0];
+    ty.push(a ? a.net_sales : null);
+    ly.push(b ? b.net_sales : null);
+  }
+  var names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var last = 0;
+  ty.forEach(function(v,i){ if (v !== null) last = i; });
+  var n = last + 1;
+  ty = ty.slice(0,n); ly = ly.slice(0,n);
+  /* The newest month is only complete up to the data date, so it is drawn open. */
+  var partial = Number(D.meta.periods.ytd_ty.until.slice(5,7)) === n;
+
+  var W = 560, H = 220, L = 52, R = 16, T = 14, B = 26;
+  var max = 0;
+  ty.concat(ly).forEach(function(v){ if (v !== null && v > max) max = v; });
+  max = max || 1;
+  var step = Math.pow(10, Math.floor(Math.log10(max))) / 2;
+  var top = Math.ceil(max / step) * step;
+  var x = function(i){ return L + (n < 2 ? 0 : i * (W - L - R) / (n - 1)); };
+  var y = function(v){ return T + (H - T - B) * (1 - v / top); };
+
+  var svg = document.getElementById("trend");
+  svg.setAttribute("viewBox","0 0 " + W + " " + H);
+  var p = [];
+  var ticks = 4;
+  for (var t = 0; t <= ticks; t++){
+    var v = top * t / ticks, yy = y(v);
+    p.push('<line x1="' + L + '" y1="' + yy.toFixed(1) + '" x2="' + (W-R) + '" y2="' + yy.toFixed(1) +
+           '" stroke="var(--grid)" stroke-width="1"/>');
+    p.push('<text x="' + (L-8) + '" y="' + (yy+3.5).toFixed(1) + '" text-anchor="end" font-size="10" ' +
+           'font-family="IBM Plex Mono, monospace" fill="var(--muted)">' + money(v) + '</text>');
+  }
+  for (var i = 0; i < n; i++){
+    p.push('<text x="' + x(i).toFixed(1) + '" y="' + (H-8) + '" text-anchor="middle" font-size="10" ' +
+           'font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">' + names[i] + '</text>');
+  }
+  function path(arr){
+    var d = "", open = false;
+    arr.forEach(function(v,i){
+      if (v === null){ open = false; return; }
+      d += (open ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " ";
+      open = true;
+    });
+    return d.trim();
+  }
+  p.push('<path d="' + path(ly) + '" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>');
+  p.push('<path d="' + path(ty) + '" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>');
+  [[ly,"--s2"],[ty,"--s1"]].forEach(function(pair){
+    pair[0].forEach(function(v,i){
+      if (v === null) return;
+      var open = partial && i === n - 1;
+      p.push('<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="' + (open ? 4 : 3) +
+             '" fill="' + (open ? "var(--surface)" : "var(" + pair[1] + ")") +
+             '" stroke="' + (open ? "var(" + pair[1] + ")" : "var(--surface)") + '" stroke-width="2"/>');
+    });
+  });
+  /* direct label on the latest this-year point */
+  var li = -1;
+  ty.forEach(function(v,i){ if (v !== null) li = i; });
+  if (li >= 0){
+    var anchor = li >= n - 1 ? "end" : "middle";
+    p.push('<text x="' + x(li).toFixed(1) + '" y="' + (y(ty[li]) - 10).toFixed(1) + '" text-anchor="' + anchor +
+           '" font-size="11" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink)">' +
+           money(ty[li]) + '</text>');
+  }
+  p.push('<rect id="trend-hit" x="' + L + '" y="' + T + '" width="' + (W-L-R) + '" height="' + (H-T-B) + '" fill="transparent"/>');
+  svg.innerHTML = p.join("");
+
+  var tip = document.getElementById("trend-tip");
+  var hit = svg.querySelector("#trend-hit");
+  hit.addEventListener("mousemove", function(e){
+    var r = svg.getBoundingClientRect();
+    var px = (e.clientX - r.left) / r.width * W;
+    var i = Math.max(0, Math.min(n-1, Math.round((px - L) / ((W-L-R) / Math.max(1,n-1)))));
+    tip.innerHTML = '<div class="t">' + names[i] + '</div>' +
+      '<div class="r"><span>This year</span><span>' + (ty[i]===null?"—":money2(ty[i])) + '</span></div>' +
+      '<div class="r"><span>Last year</span><span>' + (ly[i]===null?"—":money2(ly[i])) + '</span></div>' +
+      '<div class="r"><span>Change</span><span>' + pctText(pct(ty[i]||0, ly[i]||0)) + '</span></div>';
+    tip.style.opacity = 1;
+    var left = x(i) / W * r.width + 12;
+    tip.style.left = Math.min(left, r.width - 160) + "px";
+    tip.style.top = "6px";
+  });
+  hit.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
+
+  document.getElementById("trend-title").textContent =
+    isAll() ? "Net sales by month, all locations" : "Net sales by month, " + state.store;
+  document.getElementById("trend-cap").textContent =
+    names[0] + " to " + names[n-1] + ", " + thisYear + " against " + lastYear +
+    ". Solid is this year." + (partial ? " " + names[n-1] + " is part way through both years." : "");
+}
+
+/* grouped bars: new against returning, both years */
+function renderMix(){
+  var ty = P("ty"), ly = P("ly");
+  var groups = [
+    { label: periodLabel("ly"), ret: ly.returning_customers, nw: ly.new_customers },
+    { label: periodLabel("ty"), ret: ty.returning_customers, nw: ty.new_customers }
+  ];
+  var W = 320, H = 220, L = 44, R = 12, T = 14, B = 34;
+  var max = 0;
+  groups.forEach(function(g){ max = Math.max(max, g.ret, g.nw); });
+  max = max || 1;
+  var step = Math.pow(10, Math.floor(Math.log10(max))) / 2;
+  var top = Math.ceil(max / step) * step;
+  var y = function(v){ return T + (H-T-B) * (1 - v/top); };
+  var gw = (W - L - R) / groups.length;
+  var bw = Math.min(38, gw/2 - 6);
+
+  var p = [];
+  for (var t = 0; t <= 4; t++){
+    var v = top*t/4, yy = y(v);
+    p.push('<line x1="' + L + '" y1="' + yy.toFixed(1) + '" x2="' + (W-R) + '" y2="' + yy.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>');
+    p.push('<text x="' + (L-8) + '" y="' + (yy+3.5).toFixed(1) + '" text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--muted)">' + int(v) + '</text>');
+  }
+  var bars = [];
+  groups.forEach(function(g, gi){
+    var cx = L + gw*gi + gw/2;
+    [["ret","--s3","Returning"],["nw","--s4","New"]].forEach(function(sp, si){
+      var v = g[sp[0]];
+      var bx = cx - bw - 1 + si*(bw+2);
+      var by = y(v), bh = Math.max(0, y(0) - by);
+      p.push('<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) +
+             '" height="' + bh.toFixed(1) + '" rx="3" fill="var(' + sp[1] + ')"/>');
+      p.push('<text x="' + (bx+bw/2).toFixed(1) + '" y="' + (by-6).toFixed(1) + '" text-anchor="middle" font-size="10" ' +
+             'font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">' + int(v) + '</text>');
+      bars.push({x:bx, w:bw, y:by, h:bh, label:g.label, series:sp[2], v:v});
+    });
+    p.push('<text x="' + cx.toFixed(1) + '" y="' + (H-10) + '" text-anchor="middle" font-size="10" ' +
+           'font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">' + esc(g.label) + '</text>');
+  });
+  var svg = document.getElementById("mix");
+  svg.setAttribute("viewBox","0 0 " + W + " " + H);
+  svg.innerHTML = p.join("");
+
+  var tip = document.getElementById("mix-tip");
+  svg.addEventListener("mousemove", function(e){
+    var r = svg.getBoundingClientRect();
+    var px = (e.clientX - r.left)/r.width*W, py = (e.clientY - r.top)/r.height*H;
+    var hit = bars.filter(function(b){ return px >= b.x-2 && px <= b.x+b.w+2 && py >= b.y-10 && py <= y(0); })[0];
+    if (!hit){ tip.style.opacity = 0; return; }
+    tip.innerHTML = '<div class="t">' + esc(hit.label) + '</div>' +
+      '<div class="r"><span>' + hit.series + '</span><span>' + int(hit.v) + '</span></div>';
+    tip.style.opacity = 1;
+    tip.style.left = Math.min((hit.x+hit.w/2)/W*r.width + 10, r.width - 140) + "px";
+    tip.style.top = Math.max(0, hit.y/H*r.height - 10) + "px";
+  });
+  svg.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
+
+  var rate = ty.customers ? ty.returning_customers/ty.customers*100 : 0;
+  var rateLy = ly.customers ? ly.returning_customers/ly.customers*100 : 0;
+  document.getElementById("mix-cap").textContent =
+    "Repeat rate " + rate.toFixed(1) + "% this year against " + rateLy.toFixed(1) + "% last year.";
+}
+
+function renderStoreTable(){
+  var k = keys();
+  var rows = D.store_table[k.ty].slice();
+  var lyMap = {};
+  D.store_table[k.ly].forEach(function(r){ lyMap[r.store] = r; });
+  var max = rows.length ? rows[0].net_sales : 1;
+  var head = ["","Location","Net sales","","vs LY","Orders","UPT","AOV","Returning","New"];
+  var html = "<thead><tr>" + head.map(function(h,i){
+    return "<th" + (i===0?' class="rank"':"") + ">" + h + "</th>";
+  }).join("") + "</tr></thead><tbody>";
+  rows.forEach(function(r, i){
+    var ly = lyMap[r.store] || {net_sales:0, orders:0, upt:0, aov:0, returning_customers:0, new_customers:0};
+    var d = pct(r.net_sales, ly.net_sales);
+    var w = max ? Math.max(1, r.net_sales/max*100) : 0;
+    var sel = r.store === state.store;
+    html += '<tr' + (sel ? ' style="background:var(--accent-soft)"' : '') + '>' +
+      '<td class="rank">' + (i+1) + '</td>' +
+      '<td><span class="name">' + esc(r.store) + '</span></td>' +
+      '<td class="num">' + money2(r.net_sales) + '</td>' +
+      '<td class="barcell"><span class="bartrack"><span class="bar" style="width:' + w.toFixed(1) + '%"></span></span></td>' +
+      '<td class="num delta ' + pctClass(d) + '">' + pctText(d) + '</td>' +
+      '<td class="num">' + int(r.orders) + '</td>' +
+      '<td class="num">' + r.upt.toFixed(2) + '</td>' +
+      '<td class="num">' + money2(r.aov) + '</td>' +
+      '<td class="num">' + int(r.returning_customers) + '</td>' +
+      '<td class="num">' + int(r.new_customers) + '</td>' +
+      '</tr>';
+  });
+  document.getElementById("storetable").innerHTML = html + "</tbody>";
+  document.getElementById("storetable-cap").textContent =
+    periodLabel("ty") + " against " + periodLabel("ly") + ". Click a chip above to filter every section to one door.";
+}
+
+/* ---------- section 2 ---------- */
+function staffRows(){
+  var k = keys();
+  var rows = block().staff.slice().filter(function(s){
+    return s[k.ty].net_sales > 0 || s[k.ly].net_sales > 0;
+  });
+  rows.sort(function(a,b){ return b[k.ty].net_sales - a[k.ty].net_sales; });
+  return rows;
+}
+
+function renderSpotlight(){
+  var k = keys(), rows = staffRows(), box = document.getElementById("spotlight");
+  box.innerHTML = "";
+  if (!rows.length){
+    box.appendChild(noteCard("No salesperson attribution", "No orders in this window carry a POS staff member for this selection."));
+    return;
+  }
+  var mvp = rows[0];
+  var withLy = rows.filter(function(r){ return r[k.ly].net_sales > 0 && r[k.ty].net_sales > 0; });
+  var risers = withLy.slice().sort(function(a,b){ return pct(b[k.ty].net_sales,b[k.ly].net_sales) - pct(a[k.ty].net_sales,a[k.ly].net_sales); });
+  var riser = risers[0];
+  var faller = risers[risers.length-1];
+  var basket = rows.slice().filter(function(r){ return r[k.ty].orders >= 20; })
+                   .sort(function(a,b){ return b[k.ty].upt - a[k.ty].upt; })[0] || rows[0];
+
+  [
+    ["MVP this period", mvp, "Top net sales", function(r){ return money2(r[k.ty].net_sales); }],
+    ["Biggest riser", riser, "Growth against last year", function(r){ return pctText(pct(r[k.ty].net_sales, r[k.ly].net_sales)); }],
+    ["Needs a plan", faller, "Furthest behind last year", function(r){ return pctText(pct(r[k.ty].net_sales, r[k.ly].net_sales)); }],
+    ["Best basket builder", basket, "Highest units per transaction", function(r){ return r[k.ty].upt.toFixed(2) + " UPT"; }]
+  ].forEach(function(c){
+    if (!c[1]) return;
+    var r = c[1], card = el("div","card");
+    card.appendChild(el("div","eyebrow", c[0]));
+    card.appendChild(el("div","who", r.staff || "Unattributed"));
+    card.appendChild(el("div","why", c[2] + ": " + c[3](r) +
+      (isAll() && r.store ? " · " + r.store.replace(/^Maceoo /,"") +
+        (r.doors > 1 ? " +" + (r.doors - 1) + " more" : "") : "")));
+    var dl = el("dl");
+    [["Net sales", money2(r[k.ty].net_sales)],
+     ["Orders", int(r[k.ty].orders)],
+     ["UPT", r[k.ty].upt.toFixed(2)],
+     ["AOV", money2(r[k.ty].aov)],
+     ["Last year", money2(r[k.ly].net_sales)]].forEach(function(p){
+      dl.appendChild(el("dt",null,p[0]));
+      dl.appendChild(el("dd",null,p[1]));
+    });
+    card.appendChild(dl);
+    box.appendChild(card);
+  });
+}
+
+function renderStaffTable(){
+  var k = keys(), rows = staffRows();
+  var max = rows.length ? rows[0][k.ty].net_sales : 1;
+  var head = ["","Salesperson","Net sales","","vs LY","Orders","UPT","AOV","LY sales"];
+  var html = "<thead><tr>" + head.map(function(h,i){
+    return "<th" + (i===0?' class="rank"':"") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>";
+  if (!rows.length){
+    html += '<tr><td colspan="9" class="empty">No salesperson rows for this selection.</td></tr>';
+  }
+  rows.forEach(function(r,i){
+    var d = pct(r[k.ty].net_sales, r[k.ly].net_sales);
+    var w = max ? Math.max(1, r[k.ty].net_sales/max*100) : 0;
+    html += '<tr>' +
+      '<td class="rank">' + (i+1) + '</td>' +
+      '<td><span class="name">' + esc(r.staff || "Unattributed") + '</span>' +
+        (isAll() ? '<span class="where">' + esc(r.store || "Online") +
+          (r.doors > 1 ? " and " + (r.doors - 1) + " more" : "") + '</span>' : '') + '</td>' +
+      '<td class="num">' + money2(r[k.ty].net_sales) + '</td>' +
+      '<td class="barcell"><span class="bartrack"><span class="bar" style="width:' + w.toFixed(1) + '%"></span></span></td>' +
+      '<td class="num delta ' + pctClass(d) + '">' + pctText(d) + '</td>' +
+      '<td class="num">' + int(r[k.ty].orders) + '</td>' +
+      '<td class="num">' + r[k.ty].upt.toFixed(2) + '</td>' +
+      '<td class="num">' + money2(r[k.ty].aov) + '</td>' +
+      '<td class="num" style="color:var(--muted)">' + money2(r[k.ly].net_sales) + '</td>' +
+      '</tr>';
+  });
+  document.getElementById("stafftable").innerHTML = html + "</tbody>";
+  document.getElementById("staff-cap").textContent =
+    label() + " · " + periodLabel("ty") + " against " + periodLabel("ly") +
+    ". A name with no last-year figure joined since.";
+}
+
+/* ---------- manual sections ---------- */
+function noteCard(title, body, list){
+  var n = el("div","note");
+  n.appendChild(el("h4",null,title));
+  n.appendChild(el("div",null,body));
+  if (list && list.length){
+    var ul = el("ul");
+    list.forEach(function(t){ var li = el("li"); li.innerHTML = t; ul.appendChild(li); });
+    n.appendChild(ul);
+  }
+  return n;
+}
+
+function renderEndear(){
+  var box = document.getElementById("endear"); box.innerHTML = "";
+  var m = (D.manual && D.manual.endear) || {};
+  var rows = (m.segments || []).filter(function(s){ return s.total_clients !== null; });
+  if (rows.length){
+    var card = el("div","card");
+    card.appendChild(el("h3",null,"Segment coverage"));
+    var html = "<thead><tr><th>Segment</th><th>Clients</th><th>Contacted</th><th>Idle</th><th>Texts per conversation</th></tr></thead><tbody>";
+    rows.forEach(function(s){
+      html += "<tr><td>" + esc(s.segment) + "</td><td class='num'>" + int(s.total_clients) + "</td><td class='num'>" +
+        int(s.contacted) + "</td><td class='num'>" + int(s.idle) + "</td><td class='num'>" +
+        (s.avg_texts_per_conversation === null ? "—" : s.avg_texts_per_conversation) + "</td></tr>";
+    });
+    var tw = el("div","tw"); var t = el("table"); t.innerHTML = html + "</tbody>"; tw.appendChild(t);
+    card.appendChild(tw); box.appendChild(card);
+    return;
+  }
+  box.appendChild(noteCard(
+    "Endear is not connected to this session",
+    "This is slide 28 of the deck. Everything it asks for lives in Endear, which has no connector here, so the dashboard cannot pull it on refresh.",
+    ["Overall performance per store per salesperson",
+     "Clients contacted per store per salesperson",
+     "Segment size against clients not contacted",
+     "Idle client count",
+     "Conversion rate per salesperson",
+     "To fill it: paste the Endear export into <code>data/manual.json</code> under <code>endear.segments</code>, or authorise an Endear connector and it joins the refresh."]
+  ));
+}
+
+function renderConversion(){
+  var live = document.getElementById("conv-live"); live.innerHTML = "";
+  var ty = P("ty"), ly = P("ly");
+  /* The half of conversion Shopify can supply: transactions, and how they moved. */
+  [["Transactions", int(ty.orders), pct(ty.orders, ly.orders), "orders in " + periodLabel("ty")],
+   ["Units sold", int(ty.units), pct(ty.units, ly.units), "net of returns"],
+   ["Value per transaction", money2(ty.aov), pct(ty.aov, ly.aov), "average order value"],
+   ["Clients identified", int(ty.customers), pct(ty.customers, ly.customers),
+     (ty.orders ? (ty.customers/ty.orders*100).toFixed(0) : "0") + "% of orders carry a client"]
+  ].forEach(function(r){
+    var c = el("div","card");
+    c.appendChild(el("div","eyebrow", r[0]));
+    var v = el("div","v"); v.className = "who"; v.textContent = r[1];
+    c.appendChild(v);
+    var s = el("div","why");
+    var d = el("span","delta " + pctClass(r[2]), pctText(r[2]));
+    s.appendChild(d); s.appendChild(document.createTextNode("  " + r[3]));
+    c.appendChild(s);
+    live.appendChild(c);
+  });
+  var note = document.getElementById("conv-note"); note.innerHTML = "";
+  note.appendChild(noteCard(
+    "Door traffic is the missing denominator",
+    "Conversion rate is transactions divided by people who walked in. Shopify gives the numerator above. The denominator is V-Count, and the shift that owned it is Homebase. Neither is connected here.",
+    ["Conversion rate for the store, for the shift, and for the salesperson",
+     "Value per visitor, not only per buyer",
+     "Walk-ins who did not buy, by shift",
+     "To fill it: add V-Count rows to <code>data/manual.json</code> under <code>vcount.rows</code>, or connect V-Count and Homebase so the refresh joins them to these order counts."]
+  ));
+}
+
+/* ---------- section 5 ---------- */
+function renderBehaviour(){
+  var box = document.getElementById("behaviour"); box.innerHTML = "";
+  var ty = P("ty"), ly = P("ly");
+  var spendTy = ty.customers ? ty.net_sales/ty.customers : 0;
+  var spendLy = ly.customers ? ly.net_sales/ly.customers : 0;
+  var unitsTy = ty.customers ? ty.units/ty.customers : 0;
+  var unitsLy = ly.customers ? ly.units/ly.customers : 0;
+  var repTy = ty.customers ? ty.returning_customers/ty.customers*100 : 0;
+  var repLy = ly.customers ? ly.returning_customers/ly.customers*100 : 0;
+  var ordTy = ty.customers ? ty.orders/ty.customers : 0;
+  [["Spend per client", money2(spendTy), pct(spendTy, spendLy), money2(spendLy) + " last year"],
+   ["Units per client", unitsTy.toFixed(1), pct(unitsTy, unitsLy), unitsLy.toFixed(1) + " last year"],
+   ["Repeat rate", repTy.toFixed(1) + "%", pct(repTy, repLy), repLy.toFixed(1) + "% last year"],
+   ["Orders per client", ordTy.toFixed(2), null, int(ty.customers) + " clients served"]
+  ].forEach(function(r){
+    var c = el("div","card");
+    c.appendChild(el("div","eyebrow", r[0]));
+    var v = el("div","who"); v.textContent = r[1]; c.appendChild(v);
+    var s = el("div","why");
+    if (r[2] !== null) s.appendChild(el("span","delta " + pctClass(r[2]), pctText(r[2]) + "  "));
+    s.appendChild(document.createTextNode(r[3]));
+    c.appendChild(s);
+    box.appendChild(c);
+  });
+}
+
+function renderClientTable(){
+  var k = keys();
+  var lyMap = {};
+  D.store_table[k.ly].forEach(function(r){ lyMap[r.store] = r; });
+  var rows = D.store_table[k.ty].slice().filter(function(r){ return r.customers > 0; });
+  rows.forEach(function(r){
+    r._spend = r.customers ? r.net_sales/r.customers : 0;
+    r._rep = r.customers ? r.returning_customers/r.customers*100 : 0;
+  });
+  rows.sort(function(a,b){ return b._spend - a._spend; });
+  var html = "<thead><tr><th class='rank'></th><th>Location</th><th>Clients</th><th>Spend per client</th>" +
+    "<th>vs LY</th><th>Units per client</th><th>Repeat rate</th><th>Returning vs LY</th></tr></thead><tbody>";
+  rows.forEach(function(r,i){
+    var ly = lyMap[r.store];
+    var spendLy = ly && ly.customers ? ly.net_sales/ly.customers : 0;
+    var d = pct(r._spend, spendLy);
+    var dr = ly ? pct(r.returning_customers, ly.returning_customers) : null;
+    var sel = r.store === state.store;
+    html += '<tr' + (sel ? ' style="background:var(--accent-soft)"' : '') + '>' +
+      '<td class="rank">' + (i+1) + '</td>' +
+      '<td><span class="name">' + esc(r.store) + '</span></td>' +
+      '<td class="num">' + int(r.customers) + '</td>' +
+      '<td class="num">' + money2(r._spend) + '</td>' +
+      '<td class="num delta ' + pctClass(d) + '">' + pctText(d) + '</td>' +
+      '<td class="num">' + (r.customers ? (r.units/r.customers).toFixed(1) : "—") + '</td>' +
+      '<td class="num">' + r._rep.toFixed(1) + '%</td>' +
+      '<td class="num delta ' + pctClass(dr) + '">' + pctText(dr) + '</td>' +
+      '</tr>';
+  });
+  document.getElementById("clienttable").innerHTML = html + "</tbody>";
+  document.getElementById("client-cap").textContent =
+    "Ranked by spend per identified client, " + periodLabel("ty") +
+    ". Only orders with a client attached count toward these figures.";
+}
+
+/* ---------- section 6 ---------- */
+function renderInventory(){
+  var inv = block().inventory;
+  var box = document.getElementById("inv-kpis"); box.innerHTML = "";
+  var ty = inv && inv.ty, ly = inv && inv.ly;
+  var sales = P("ty");
+  var turn = ty && ty.retail_value ? sales.net_sales / ty.retail_value : null;
+  var rows = [
+    ["Stock at retail", ty ? money0(ty.retail_value) : "—", ty&&ly ? pct(ty.retail_value, ly.retail_value) : null,
+      ly ? money(ly.retail_value) + " last year" : "no last-year figure"],
+    ["Stock at cost", ty ? money0(ty.cost_value) : "—", ty&&ly ? pct(ty.cost_value, ly.cost_value) : null,
+      ty && ty.retail_value ? (ty.cost_value/ty.retail_value*100).toFixed(0) + "% of retail" : ""],
+    ["Units on hand", ty ? int(ty.units) : "—", null,
+      ty && ty.units < 0 ? "negative: POS sold past zero, a count is due" : "across every stocked category"],
+    ["Sales to stock", turn ? turn.toFixed(2) + "×" : "—", null,
+      periodLabel("ty") + " sales over stock at retail"]
+  ];
+  rows.forEach(function(r){
+    var t = el("div","tile");
+    t.appendChild(el("div","k", r[0]));
+    t.appendChild(el("div","v", r[1]));
+    var line = el("div","sub");
+    if (r[2] !== null) line.appendChild(el("span","delta " + pctClass(r[2]), pctText(r[2]) + "  "));
+    line.appendChild(document.createTextNode(r[3]));
+    t.appendChild(line);
+    box.appendChild(t);
+  });
+
+  /* category matrix */
+  var matrix = (inv && inv.matrix) || [];
+  var cap = document.getElementById("matrix-cap");
+  var labels = { refill:"Refill", healthy:"Healthy", overstocked:"Overstocked",
+               no_movement:"No movement", check_count:"Check count" };
+  if (!matrix.length){
+    document.getElementById("matrix").innerHTML =
+      '<tbody><tr><td class="empty">Choose a single location to see its category matrix. The company roll-up is the ranked table in section 1.</td></tr></tbody>';
+    cap.textContent = "";
+  } else {
+    var html = "<thead><tr><th>Category</th><th>On hand</th><th>Stock at retail</th><th>Sold YTD</th>" +
+      "<th>Sold value</th><th>Sell-through</th><th></th><th>Signal</th></tr></thead><tbody>";
+    matrix.forEach(function(c){
+      html += '<tr>' +
+        '<td><span class="name">' + esc(c.category) + '</span></td>' +
+        '<td class="num">' + int(c.on_hand_units) + '</td>' +
+        '<td class="num">' + money2(c.on_hand_retail) + '</td>' +
+        '<td class="num">' + int(c.sold_units) + '</td>' +
+        '<td class="num">' + money2(c.sold_value) + '</td>' +
+        '<td class="num">' + c.sell_through.toFixed(1) + '%</td>' +
+        '<td class="barcell"><span class="bartrack"><span class="bar alt" style="width:' +
+          Math.max(1, Math.min(100, c.sell_through)).toFixed(1) + '%"></span></span></td>' +
+        '<td><span class="pill ' + c.signal + '">' + labels[c.signal] + '</span></td>' +
+        '</tr>';
+    });
+    document.getElementById("matrix").innerHTML = html + "</tbody>";
+    cap.textContent = state.store + " · stock on hand today against year-to-date sell-through. " +
+      "Refill means the category is selling faster than the shelf can hold. No movement means stock sitting with no sales behind it.";
+  }
+
+  /* NetSuite */
+  var ns = D.netsuite;
+  var poHtml = "<thead><tr><th>Vendor</th><th>Open POs</th><th>Open value</th><th>Latest</th></tr></thead><tbody>";
+  ns.open_po_by_vendor.forEach(function(v){
+    poHtml += '<tr><td><span class="name">' + esc(v[0]) + '</span></td><td class="num">' + int(v[1]) +
+      '</td><td class="num">' + money2(v[2]) + '</td><td class="num" style="color:var(--muted)">' + v[4] + '</td></tr>';
+  });
+  document.getElementById("potable").innerHTML = poHtml + "</tbody>";
+  document.getElementById("po-cap").textContent =
+    money2(ns.open_po_total) + " open across " + int(ns.open_po_count) + " orders and " +
+    int(ns.open_po_vendor_count) + " vendors. Top 20 shown. Purchase orders are booked at company level, not by door.";
+
+  /* PO status bars */
+  var st = ns.po_by_status_2026.slice();
+  var W = 420, rowH = 30, H = st.length*rowH + 16, L = 190;
+  var maxV = Math.max.apply(null, st.map(function(s){ return s[2]; }));
+  var p = [], bars = [];
+  st.forEach(function(s, i){
+    var y = 8 + i*rowH, w = Math.max(2, s[2]/maxV*(W-L-70));
+    var open = /Pending Receipt|Partially Received|Pending Supervisor/.test(s[0]);
+    p.push('<text x="0" y="' + (y+13) + '" font-size="11" font-family="IBM Plex Sans, sans-serif" fill="var(--ink-2)">' + esc(s[0]) + '</text>');
+    p.push('<rect x="' + L + '" y="' + (y+4) + '" width="' + w.toFixed(1) + '" height="14" rx="3" fill="var(' +
+           (open ? "--s1" : "--s3") + ')"/>');
+    p.push('<text x="' + (L+w+8).toFixed(1) + '" y="' + (y+15) + '" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">' + money(s[2]) + '</text>');
+    bars.push({y:y+4, h:14, x:L, w:w, name:s[0], count:s[1], val:s[2]});
+  });
+  var svg = document.getElementById("postatus");
+  svg.setAttribute("viewBox","0 0 " + W + " " + H);
+  svg.innerHTML = p.join("");
+  var tip = document.getElementById("po-tip");
+  svg.addEventListener("mousemove", function(e){
+    var r = svg.getBoundingClientRect();
+    var py = (e.clientY - r.top)/r.height*H;
+    var hit = bars.filter(function(b){ return py >= b.y-6 && py <= b.y+b.h+6; })[0];
+    if (!hit){ tip.style.opacity = 0; return; }
+    tip.innerHTML = '<div class="t">' + esc(hit.name) + '</div>' +
+      '<div class="r"><span>Orders</span><span>' + int(hit.count) + '</span></div>' +
+      '<div class="r"><span>Value</span><span>' + money2(hit.val) + '</span></div>';
+    tip.style.opacity = 1;
+    tip.style.left = "16px";
+    tip.style.top = Math.max(0, hit.y/H*r.height - 4) + "px";
+  });
+  svg.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
+}
+
+/* ---------- section 7 ---------- */
+function renderMerch(){
+  var inv = block().inventory;
+  var matrix = (inv && inv.matrix) || [];
+  var cap = document.getElementById("merch-cap");
+  var note = document.getElementById("merch-note"); note.innerHTML = "";
+  var m = (D.manual && D.manual.merchandising) || {};
+  if (!matrix.length){
+    document.getElementById("merchtable").innerHTML =
+      '<tbody><tr><td class="empty">Pick a location to compare its floor mix against its sales mix.</td></tr></tbody>';
+    cap.textContent = "";
+  } else {
+    var stockTotal = matrix.reduce(function(a,c){ return a + Math.max(0,c.on_hand_retail); }, 0) || 1;
+    var salesTotal = matrix.reduce(function(a,c){ return a + Math.max(0,c.sold_value); }, 0) || 1;
+    var rows = matrix.map(function(c){
+      var s = Math.max(0,c.on_hand_retail)/stockTotal*100;
+      var v = Math.max(0,c.sold_value)/salesTotal*100;
+      return { cat:c.category, stock:s, sales:v, gap:v - s };
+    }).sort(function(a,b){ return b.gap - a.gap; });
+    var html = "<thead><tr><th>Category</th><th>Share of stock</th><th>Share of sales</th><th>Gap</th><th></th><th>Read</th></tr></thead><tbody>";
+    rows.forEach(function(r){
+      var read = r.gap > 3 ? "Earning more room" : r.gap < -3 ? "Taking room it has not earned" : "In balance";
+      var w = Math.min(100, Math.abs(r.gap)*4);
+      html += '<tr><td><span class="name">' + esc(r.cat) + '</span></td>' +
+        '<td class="num">' + r.stock.toFixed(1) + '%</td>' +
+        '<td class="num">' + r.sales.toFixed(1) + '%</td>' +
+        '<td class="num delta ' + pctClass(r.gap) + '">' + (r.gap>0?"+":"−") + Math.abs(r.gap).toFixed(1) + ' pts</td>' +
+        '<td class="barcell"><span class="bartrack"><span class="bar" style="width:' + w.toFixed(1) +
+          '%;background:var(' + (r.gap>0?"--s3":"--s2") + ')"></span></span></td>' +
+        '<td style="text-align:left;white-space:normal;color:var(--ink-2)">' + read + '</td></tr>';
+    });
+    document.getElementById("merchtable").innerHTML = html + "</tbody>";
+    cap.textContent = state.store + " · each category's share of stock at retail against its share of year-to-date sales. " +
+      "A positive gap earns more facings; a negative gap is a candidate for transfer or markdown.";
+  }
+  note.appendChild(noteCard(
+    "Front of house and back of house standards",
+    "The numeric half of the merchandising plan is above and refreshes with the rest of the dashboard. " +
+      "The photographic standards, core style counts and room-by-room plan live in the mathematical retail sheet in Drive.",
+    [ m.sheet_url ? 'Mathematical retail sheet: <a href="' + esc(m.sheet_url) + '" target="_blank" rel="noopener">open in Drive</a>' : "",
+      "Add the per-store core style counts to <code>data/manual.json</code> to show them beside this table."
+    ].filter(Boolean)
+  ));
+}
+
+/* ---------- section 8 ---------- */
+function renderMarketing(){
+  var box = document.getElementById("marketing"); box.innerHTML = "";
+  var m = (D.manual && D.manual.marketing) || {};
+  var events = m.events || [];
+  if (events.length){
+    var card = el("div","card");
+    card.appendChild(el("h3",null,"Calendar"));
+    var html = "<thead><tr><th>Date</th><th>Channel</th><th>What</th><th>Store</th></tr></thead><tbody>";
+    events.forEach(function(e){
+      html += "<tr><td>" + esc(e.date||"") + "</td><td>" + esc(e.channel||"") + "</td><td style='text-align:left;white-space:normal'>" +
+        esc(e.title||"") + "</td><td>" + esc(e.store||"All") + "</td></tr>";
+    });
+    var tw = el("div","tw"), t = el("table"); t.innerHTML = html + "</tbody>"; tw.appendChild(t);
+    card.appendChild(tw); box.appendChild(card);
+    return;
+  }
+  box.appendChild(noteCard(
+    "The calendar is kept in Drive",
+    "Slide 33 asks for the pipeline, paid media, the gala, celebrity placements, Instagram posts and the month-ahead calendar. None of that sits in Shopify or NetSuite.",
+    ["Add entries to <code>data/manual.json</code> under <code>marketing.events</code> as <code>{date, channel, title, store}</code> and they appear here on the next refresh.",
+     "Paid media results can be tied back to the sales above once a Meta or Google Ads connector is authorised."]
+  ));
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderKpis();
+  renderTrend();
+  renderMix();
+  renderStoreTable();
+  renderSpotlight();
+  renderStaffTable();
+  renderEndear();
+  renderConversion();
+  renderBehaviour();
+  renderClientTable();
+  renderInventory();
+  renderMerch();
+  renderMarketing();
+}
+render();
+window.addEventListener("resize", function(){ renderTrend(); renderMix(); });
+})();
+</script>
