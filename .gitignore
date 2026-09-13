@@ -1,2 +1,7 @@
 __pycache__/
 .DS_Store
+.vercel/
+
+# Generated beside dashboard.html for static hosts that serve index.html at the
+# root. Same bytes, so it is built rather than committed.
+index.html

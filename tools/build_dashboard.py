@@ -410,9 +410,14 @@ def main():
 
 
 def render_html(payload):
-    """Inline the data into the template so dashboard.html opens anywhere, offline."""
+    """Inline the data into the template so the page opens anywhere, offline.
+
+    dashboard.html is the deliverable and the filename the published Artifact
+    tracks. index.html is the same bytes, written for static hosts that serve
+    index.html at the root; vercel.json covers that case with a rewrite instead,
+    so index.html is generated rather than committed.
+    """
     template = os.path.join(ROOT, "dashboard.template.html")
-    target = os.path.join(ROOT, "dashboard.html")
     with open(template, encoding="utf-8") as fh:
         html = fh.read()
     if "__DASHBOARD_DATA__" not in html:
@@ -420,9 +425,12 @@ def render_html(payload):
     # </script> inside a JSON island would close the block early.
     blob = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
     html = html.replace("__DASHBOARD_DATA__", blob)
-    with open(target, "w", encoding="utf-8") as fh:
-        fh.write(html)
-    print(f"wrote {target} ({os.path.getsize(target)/1024:.0f} KB)")
+
+    for name in ("dashboard.html", "index.html"):
+        target = os.path.join(ROOT, name)
+        with open(target, "w", encoding="utf-8") as fh:
+            fh.write(html)
+        print(f"wrote {target} ({os.path.getsize(target)/1024:.0f} KB)")
 
 
 def load_manual():
