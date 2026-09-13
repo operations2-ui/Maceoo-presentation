@@ -31,10 +31,12 @@ charts, the leaderboard, the category matrix and the merchandising gap.
 `All locations` for the company roll-up. The list is built from the data, so a door
 that opened since the last refresh appears on its own.
 
-**Period** offers month to date, year to date, or a custom range with a start and
-an end date. Whichever you pick, the comparison is the identical window one year
-earlier, so a part-finished month is never measured against a whole one. A custom
-range under about two months charts a point per day; longer ranges chart months.
+**Period** offers month to date, year to date, or a custom range. The two date
+boxes always show the window actually in effect, and editing either one is itself
+the request for a custom range, so the period switches to Custom on its own.
+Whichever you pick, the comparison is the identical window one year earlier, so a
+part-finished month is never measured against a whole one. A custom range under
+about two months charts a point per day; longer ranges chart months.
 
 One caveat the page also states on screen: a custom range is totalled from daily
 figures, so a client who came in on several days counts once per day. Those tiles
@@ -46,7 +48,7 @@ windows use Shopify's own period figures and count each client once.
 See [REFRESH.md](REFRESH.md). Short version:
 
 ```bash
-python3 tools/periods.py          # prints today's 21 queries, already dated
+python3 tools/periods.py          # prints today's 22 queries, already dated
 python3 tools/build_dashboard.py  # rebuilds data/dashboard.json and dashboard.html
 ```
 

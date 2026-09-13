@@ -71,6 +71,7 @@ a{color:var(--accent-ink)}
 
 /* store switcher */
 .switch{display:flex; gap:14px; align-items:flex-end; padding-bottom:11px; flex-wrap:wrap}
+[hidden]{display:none !important}
 .field{display:flex; flex-direction:column; gap:3px; min-width:0}
 .field label{
   font-family:Archivo,sans-serif; font-size:9.5px; font-weight:600;
@@ -256,11 +257,11 @@ svg.chart{display:block; width:100%; height:auto; overflow:visible}
           <option value="custom">Custom range</option>
         </select>
       </div>
-      <div class="field custom-only" id="range-fields" hidden>
+      <div class="field" id="range-fields">
         <label for="d-start">From</label>
         <input type="date" id="d-start">
       </div>
-      <div class="field custom-only" id="range-fields-2" hidden>
+      <div class="field" id="range-fields-2">
         <label for="d-end">To</label>
         <input type="date" id="d-end">
       </div>
@@ -749,19 +750,18 @@ var rangeNote = document.getElementById("range-note");
     input.min = span.first;
     input.max = span.last;
   });
-  /* Open the custom range on the current month to date, so the first render
-     after switching shows something real rather than an empty form. */
   state.from = D.meta.periods.mtd_ty.since;
   state.to = D.meta.periods.mtd_ty.until;
-  startInput.value = state.from;
-  endInput.value = state.to;
-
   modeSelect.value = state.period;
+
   modeSelect.addEventListener("change", function(){
     state.period = modeSelect.value;
     syncRangeFields();
     render();
   });
+
+  /* Editing a date is itself the request for a custom range, so switch to one
+     rather than quietly ignoring the dates while a preset is selected. */
   [startInput, endInput].forEach(function(input){
     input.addEventListener("change", function(){
       var from = startInput.value, to = endInput.value;
@@ -772,6 +772,8 @@ var rangeNote = document.getElementById("range-note");
       }
       state.from = clampDay(from);
       state.to = clampDay(to);
+      state.period = "custom";
+      modeSelect.value = "custom";
       startInput.value = state.from;
       endInput.value = state.to;
       _cache = {};
@@ -781,16 +783,23 @@ var rangeNote = document.getElementById("range-note");
   syncRangeFields();
 })();
 
+/* Keep the two boxes showing the window that is actually in effect. */
 function syncRangeFields(){
-  var on = isCustom();
-  document.getElementById("range-fields").hidden = !on;
-  document.getElementById("range-fields-2").hidden = !on;
+  if (isCustom()){
+    startInput.value = state.from;
+    endInput.value = state.to;
+  } else {
+    var w = D.meta.periods[keys().ty];
+    startInput.value = w.since;
+    endInput.value = w.until;
+  }
 }
 
 function updateRangeNote(){
   if (!isCustom()){
     var w = windowFor("ty"), l = windowFor("ly");
-    rangeNote.innerHTML = "Comparing <b>" + esc(w.label) + "</b> against <b>" + esc(l.label) + "</b>.";
+    rangeNote.innerHTML = "Comparing <b>" + esc(w.label) + "</b> against <b>" + esc(l.label) +
+      "</b>. Edit either date for a custom range.";
     return;
   }
   var ty = windowFor("ty"), ly = windowFor("ly");
@@ -1464,6 +1473,7 @@ function renderMarketing(){
 
 /* ---------- render ---------- */
 function render(){
+  syncRangeFields();
   updateRangeNote();
   renderKpis();
   renderTrend();
