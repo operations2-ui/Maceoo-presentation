@@ -4,11 +4,8 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": ".",
-  "cleanUrls": true,
-  "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/dashboard.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/", "destination": "/dashboard.html" }
   ],
   "headers": [
     {
