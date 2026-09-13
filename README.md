@@ -22,17 +22,24 @@ live.
 | 7 | Mathematical merchandising | Shopify inventory against sales by category |
 | 8 | Marketing events and calendar | Drive calendar, manual |
 
-## Switching store
+## Choosing what you are looking at
 
-The chip row under the wordmark filters every section at once, including the
-charts, the leaderboard, the category matrix and the merchandising gap. Arrow keys
-move between stores once a chip has focus. `All locations` is the company roll-up.
+Two controls sit under the wordmark and drive every section at once, including the
+charts, the leaderboard, the category matrix and the merchandising gap.
 
-The period toggle beside it swaps the whole page between month to date and year to
-date. Both always compare against the identical window one year earlier.
+**Location** is a dropdown listing every door by year-to-date net sales, with
+`All locations` for the company roll-up. The list is built from the data, so a door
+that opened since the last refresh appears on its own.
 
-The store list comes from the data, not from a hard-coded list, so a door that
-opened since the last refresh appears on its own.
+**Period** offers month to date, year to date, or a custom range with a start and
+an end date. Whichever you pick, the comparison is the identical window one year
+earlier, so a part-finished month is never measured against a whole one. A custom
+range under about two months charts a point per day; longer ranges chart months.
+
+One caveat the page also states on screen: a custom range is totalled from daily
+figures, so a client who came in on several days counts once per day. Those tiles
+say "visits" rather than "clients" while a custom range is showing. The preset
+windows use Shopify's own period figures and count each client once.
 
 ## Refreshing
 
@@ -51,6 +58,7 @@ index.html                  same bytes, generated for hosts that want index.html
 vercel.json                 static deploy, no build step, root serves the page
 dashboard.template.html     the view, with a __DASHBOARD_DATA__ placeholder
 data/raw/                   untouched query output, one file per pull
+data/raw/daily_by_*.csv     daily facts, what a custom range is totalled from
 data/periods.json           the four reporting windows
 data/manual.json            the sections with no connector
 data/dashboard.json         everything the page renders, derived

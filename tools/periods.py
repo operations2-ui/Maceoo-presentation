@@ -69,9 +69,18 @@ SHOPIFY = [
     ("category_sales_ytd", ["ytd_ty"],
      "FROM sales SHOW net_sales, net_items_sold GROUP BY pos_location_name, product_type "
      "SINCE {since} UNTIL {until} ORDER BY net_sales DESC LIMIT 110"),
-    ("monthly_by_store", ["*"],
-     "FROM sales SHOW net_sales, orders, net_items_sold GROUP BY pos_location_name "
-     "TIMESERIES month SINCE {ly_start} UNTIL {until} ORDER BY month ASC LIMIT 400"),
+    # The two daily pulls are what let the page total an arbitrary date range.
+    # Their results are large enough to be written to a file rather than returned
+    # inline, so they are transcribed by script, not by hand.
+    ("daily_by_store", ["*"],
+     "FROM sales SHOW net_sales, gross_sales, discounts, sales_reversals, orders, "
+     "net_items_sold, new_customers, returning_customers, customers "
+     "GROUP BY pos_location_name TIMESERIES day SINCE {ly_start} UNTIL {until} "
+     "ORDER BY day ASC LIMIT 10000"),
+    ("daily_by_staff", ["*"],
+     "FROM sales SHOW net_sales, orders, net_items_sold "
+     "GROUP BY staff_member_name, pos_location_name TIMESERIES day "
+     "SINCE {ly_start} UNTIL {until} ORDER BY day ASC LIMIT 30000"),
     ("top_products", ["ytd_ty"],
      "FROM sales SHOW net_sales, net_items_sold, orders GROUP BY product_title "
      "SINCE {since} UNTIL {until} ORDER BY net_items_sold DESC LIMIT 25"),

@@ -285,17 +285,72 @@ def refill_signal(on_hand, sold_units, sell_through):
 
 
 # --------------------------------------------------------------------------
+# 3b. Daily facts, which is what lets the page total an arbitrary date range
+# --------------------------------------------------------------------------
+def build_daily():
+    """Index-compressed daily facts for store and salesperson.
+
+    Shipped so a custom start and end date can be totalled in the browser. Note
+    the arithmetic these support: money, orders, units and new clients add up
+    across days, but returning and total client counts do not. A client who
+    visits on Monday and Thursday is one client over the week and two daily
+    rows, so summing days answers "visits", not "people". The preset windows
+    therefore keep Shopify's own period figures; only a custom range totals days.
+    """
+    days, stores, names = {}, {}, {}
+
+    def idx(table, key):
+        if key not in table:
+            table[key] = len(table)
+        return table[key]
+
+    store_daily = []
+    for r in read_csv("daily_by_store.csv"):
+        store_daily.append([
+            idx(days, r["day"]), idx(stores, r["store"]),
+            round(num(r["net_sales"]), 2), round(num(r["gross_sales"]), 2),
+            round(abs(num(r["discounts"])), 2), round(abs(num(r["sales_reversals"])), 2),
+            int(num(r["orders"])), int(num(r["units"])),
+            int(num(r["new_customers"])), int(num(r["returning_customers"])),
+            int(num(r["customers"])),
+        ])
+
+    staff_daily = []
+    for r in read_csv("daily_by_staff.csv"):
+        staff_daily.append([
+            idx(days, r["day"]), idx(names, r["staff"]), idx(stores, r["store"]),
+            round(num(r["net_sales"]), 2), int(num(r["orders"])), int(num(r["units"])),
+        ])
+
+    def flip(table):
+        out = [None] * len(table)
+        for key, i in table.items():
+            out[i] = key
+        return out
+
+    return {
+        "days": flip(days),
+        "stores": flip(stores),
+        "staff": flip(names),
+        "store_daily": store_daily,
+        "staff_daily": staff_daily,
+    }
+
+
+# --------------------------------------------------------------------------
 # 4. Monthly trend
 # --------------------------------------------------------------------------
 def build_trend():
-    trend = defaultdict(dict)
-    for r in read_csv("monthly_by_store.csv"):
-        trend[r["store"]][r["month"]] = {
-            "net_sales": num(r["net_sales"]),
-            "orders": int(num(r["orders"])),
-            "units": int(num(r["units"])),
-        }
-    return trend
+    """Monthly roll-up, folded up from the daily facts."""
+    trend = defaultdict(lambda: defaultdict(lambda: {"net_sales": 0.0, "orders": 0, "units": 0}))
+    for r in read_csv("daily_by_store.csv"):
+        rec = trend[r["store"]][r["day"][:7]]
+        rec["net_sales"] += num(r["net_sales"])
+        rec["orders"] += int(num(r["orders"]))
+        rec["units"] += int(num(r["units"]))
+    return {s: {m: {k: round(v, 2) for k, v in rec.items()}
+                for m, rec in months.items()}
+            for s, months in trend.items()}
 
 
 def trend_for(trend, names):
@@ -376,6 +431,7 @@ def main():
                 "purchasing": "NetSuite (SuiteQL, transaction / PurchOrd)",
             },
             "manual_sources": ["Endear", "V-Count", "Homebase", "Drive calendar"],
+            "daily_span": None,  # filled in below once the facts are built
         },
         "stores": {"all": all_names, "retail": retail},
         "company": company,
@@ -397,8 +453,12 @@ def main():
             for r in read_csv("top_products.csv")
         ],
         "netsuite": netsuite,
+        "facts": build_daily(),
         "manual": load_manual(),
     }
+
+    span = sorted(payload["facts"]["days"])
+    payload["meta"]["daily_span"] = {"first": span[0], "last": span[-1]}
 
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, separators=(",", ":"))

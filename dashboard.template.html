@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maceoo Retail Performance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,7 +70,30 @@ a{color:var(--accent-ink)}
 .mast-meta b{color:var(--ink-2); font-weight:500}
 
 /* store switcher */
-.switch{display:flex; gap:10px; align-items:center; padding-bottom:10px}
+.switch{display:flex; gap:14px; align-items:flex-end; padding-bottom:11px; flex-wrap:wrap}
+.field{display:flex; flex-direction:column; gap:3px; min-width:0}
+.field label{
+  font-family:Archivo,sans-serif; font-size:9.5px; font-weight:600;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--muted);
+}
+.field select, .field input[type="date"]{
+  font-family:inherit; font-size:13px; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--hairline); border-radius:7px; padding:6px 9px; line-height:1.3;
+  min-height:32px;
+}
+.field select{min-width:210px; max-width:min(300px,60vw)}
+.field select:hover, .field input[type="date"]:hover{border-color:var(--rule)}
+#store-select{font-weight:600}
+.range-note{
+  margin:0 0 2px; font-size:11.5px; color:var(--muted); flex:1 1 200px; min-width:0;
+  align-self:flex-end; line-height:1.45;
+}
+.range-note b{color:var(--ink-2); font-weight:500}
+@media (max-width:720px){
+  .field select{min-width:0; width:100%}
+  .field{flex:1 1 140px}
+  .range-note{flex-basis:100%}
+}
 .chips{
   display:flex; gap:6px; overflow-x:auto; padding:2px 2px 6px; flex:1; scrollbar-width:thin;
   -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);
@@ -219,11 +244,27 @@ svg.chart{display:block; width:100%; height:auto; overflow:visible}
       </div>
     </div>
     <div class="switch">
-      <div class="chips" id="chips" role="group" aria-label="Choose a store"></div>
-      <div class="seg" role="group" aria-label="Reporting period">
-        <button type="button" id="p-mtd" data-period="mtd">Month to date</button>
-        <button type="button" id="p-ytd" data-period="ytd">Year to date</button>
+      <div class="field">
+        <label for="store-select">Location</label>
+        <select id="store-select"></select>
       </div>
+      <div class="field">
+        <label for="p-mode">Period</label>
+        <select id="p-mode">
+          <option value="mtd">Month to date</option>
+          <option value="ytd" selected>Year to date</option>
+          <option value="custom">Custom range</option>
+        </select>
+      </div>
+      <div class="field custom-only" id="range-fields" hidden>
+        <label for="d-start">From</label>
+        <input type="date" id="d-start">
+      </div>
+      <div class="field custom-only" id="range-fields-2" hidden>
+        <label for="d-end">To</label>
+        <input type="date" id="d-end">
+      </div>
+      <p class="range-note" id="range-note"></p>
     </div>
   </div>
 </header>
@@ -405,7 +446,7 @@ svg.chart{display:block; width:100%; height:auto; overflow:visible}
 "use strict";
 var D = JSON.parse(document.getElementById("dashboard-data").textContent);
 var ALL = "__ALL_LOCATIONS__";
-var state = { store: ALL, period: "ytd" };
+var state = { store: ALL, period: "ytd", from: null, to: null };
 
 /* ---------- formatting ---------- */
 function money(n){
@@ -455,14 +496,213 @@ function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
 /* ---------- selection ---------- */
 function isAll(){ return state.store === ALL; }
 function label(){ return isAll() ? "All locations" : state.store; }
+function isCustom(){ return state.period === "custom"; }
 function keys(){
   return state.period === "ytd"
     ? { ty:"ytd_ty", ly:"ytd_ly" }
     : { ty:"mtd_ty", ly:"mtd_ly" };
 }
 function block(){ return isAll() ? D.company : D.by_store[state.store]; }
-function P(which){ return block().periods[keys()[which]]; }
-function periodLabel(which){ return D.meta.periods[keys()[which]].label; }
+
+/* ---------- daily facts ---------- */
+var F = D.facts;
+var DAY_IX = {};            /* "2026-09-11" -> row index into F.days */
+F.days.forEach(function(d,i){ DAY_IX[d] = i; });
+var STORE_IX = {};
+F.stores.forEach(function(n,i){ STORE_IX[n] = i; });
+
+function shiftYear(iso, by){
+  var y = Number(iso.slice(0,4)) + by;
+  var md = iso.slice(4);
+  /* 29 February has no counterpart in a common year; fall back to the 28th. */
+  if (md === "-02-29" && !((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0)) md = "-02-28";
+  return y + md;
+}
+function clampDay(iso){
+  var span = D.meta.daily_span;
+  if (iso < span.first) return span.first;
+  if (iso > span.last) return span.last;
+  return iso;
+}
+
+var EMPTY = {
+  net_sales:0, gross_sales:0, discounts:0, returns:0, orders:0, units:0,
+  new_customers:0, returning_customers:0, customers:0, upt:0, aov:0
+};
+
+/* Total the daily store rows inside [from, to] for the selected location. */
+function aggStore(from, to){
+  var want = isAll() ? -1 : (STORE_IX[state.store] === undefined ? -2 : STORE_IX[state.store]);
+  var a = { net_sales:0, gross_sales:0, discounts:0, returns:0, orders:0, units:0,
+            new_customers:0, returning_customers:0, customers:0 };
+  var rows = F.store_daily;
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i], day = F.days[r[0]];
+    if (day < from || day > to) continue;
+    if (want !== -1 && r[1] !== want) continue;
+    a.net_sales += r[2]; a.gross_sales += r[3]; a.discounts += r[4]; a.returns += r[5];
+    a.orders += r[6]; a.units += r[7];
+    a.new_customers += r[8]; a.returning_customers += r[9]; a.customers += r[10];
+  }
+  a.net_sales = Math.round(a.net_sales * 100) / 100;
+  a.upt = a.orders ? Math.round(a.units / a.orders * 100) / 100 : 0;
+  a.aov = a.orders ? Math.round(a.net_sales / a.orders * 100) / 100 : 0;
+  return a;
+}
+
+/* Total the daily salesperson rows the same way, one row per person. */
+function aggStaff(from, to, fromLy, toLy){
+  var want = isAll() ? -1 : (STORE_IX[state.store] === undefined ? -2 : STORE_IX[state.store]);
+  var byName = {};
+  function slot(nameIx, storeIx){
+    var name = F.staff[nameIx];
+    var e = byName[name];
+    if (!e){
+      e = byName[name] = { staff:name, store:F.stores[storeIx], doors:{},
+                           ty:{net_sales:0,orders:0,units:0}, ly:{net_sales:0,orders:0,units:0},
+                           best:0 };
+    }
+    return e;
+  }
+  var rows = F.staff_daily;
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i], day = F.days[r[0]];
+    var inTy = day >= from && day <= to;
+    var inLy = day >= fromLy && day <= toLy;
+    if (!inTy && !inLy) continue;
+    if (want !== -1 && r[2] !== want) continue;
+    var e = slot(r[1], r[2]);
+    var bucket = inTy ? e.ty : e.ly;
+    bucket.net_sales += r[3]; bucket.orders += r[4]; bucket.units += r[5];
+    e.doors[F.stores[r[2]]] = true;
+    if (inTy && r[3] > e.best){ e.best = r[3]; e.store = F.stores[r[2]]; }
+  }
+  var out = [];
+  Object.keys(byName).forEach(function(k){
+    var e = byName[k];
+    ["ty","ly"].forEach(function(w){
+      var b = e[w];
+      b.net_sales = Math.round(b.net_sales * 100) / 100;
+      b.upt = b.orders ? Math.round(b.units / b.orders * 100) / 100 : 0;
+      b.aov = b.orders ? Math.round(b.net_sales / b.orders * 100) / 100 : 0;
+    });
+    out.push({ staff:e.staff, store:e.store, doors:Object.keys(e.doors).length,
+               ty:e.ty, ly:e.ly });
+  });
+  return out;
+}
+
+/* The window currently on screen, in both years. */
+function windowFor(which){
+  if (!isCustom()){
+    var k = D.meta.periods[keys()[which]];
+    return { since:k.since, until:k.until, label:k.label };
+  }
+  var from = state.from, to = state.to;
+  if (which === "ly"){ from = shiftYear(from, -1); to = shiftYear(to, -1); }
+  return { since:from, until:to, label:rangeLabel(from, to) };
+}
+function rangeLabel(from, to){
+  var o = { month:"short", day:"numeric", year:"numeric" };
+  var a = new Date(from + "T12:00:00"), b = new Date(to + "T12:00:00");
+  if (from === to) return a.toLocaleDateString("en-US", o);
+  return a.toLocaleDateString("en-US", {month:"short", day:"numeric"}) +
+         " to " + b.toLocaleDateString("en-US", o);
+}
+
+/* Every location totalled over one window, keyed by name. */
+function aggByStore(from, to){
+  var out = {};
+  var rows = F.store_daily;
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i], day = F.days[r[0]];
+    if (day < from || day > to) continue;
+    var name = F.stores[r[1]];
+    var a = out[name];
+    if (!a){
+      a = out[name] = { store:name, net_sales:0, gross_sales:0, discounts:0, returns:0,
+                        orders:0, units:0, new_customers:0, returning_customers:0, customers:0 };
+    }
+    a.net_sales += r[2]; a.gross_sales += r[3]; a.discounts += r[4]; a.returns += r[5];
+    a.orders += r[6]; a.units += r[7];
+    a.new_customers += r[8]; a.returning_customers += r[9]; a.customers += r[10];
+  }
+  Object.keys(out).forEach(function(n){
+    var a = out[n];
+    a.net_sales = Math.round(a.net_sales * 100) / 100;
+    a.upt = a.orders ? Math.round(a.units / a.orders * 100) / 100 : 0;
+    a.aov = a.orders ? Math.round(a.net_sales / a.orders * 100) / 100 : 0;
+  });
+  return out;
+}
+
+/* The ranked location table's source for one side of the comparison. */
+function storeRows(which){
+  if (!isCustom()) return D.store_table[keys()[which]];
+  var w = windowFor(which);
+  var ck = "S|" + w.since + "|" + w.until;
+  if (!_cache[ck]){
+    var m = aggByStore(w.since, w.until);
+    _cache[ck] = Object.keys(m).map(function(n){ return m[n]; })
+                       .sort(function(a,b){ return b.net_sales - a.net_sales; });
+  }
+  return _cache[ck];
+}
+
+/* Bucket the selected window into day or month columns, both years aligned. */
+function trendSeries(){
+  var span, byDay;
+  if (isCustom()){
+    span = { from: state.from, to: state.to };
+    byDay = (new Date(span.to) - new Date(span.from)) / 86400000 <= 62;
+  } else {
+    span = { from: D.meta.periods.ytd_ty.since, to: D.meta.periods.ytd_ty.until };
+    byDay = false;
+  }
+  var keyOf = byDay ? function(d){ return d; } : function(d){ return d.slice(0,7); };
+  var fmt = byDay
+    ? function(k){ return new Date(k + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
+    : function(k){ return new Date(k + "-01T12:00:00").toLocaleDateString("en-US",{month:"short"}); };
+
+  var order = [], seen = {};
+  var cur = new Date(span.from + "T12:00:00"), end = new Date(span.to + "T12:00:00");
+  while (cur <= end){
+    var iso = cur.toISOString().slice(0,10), k = keyOf(iso);
+    if (!seen[k]){ seen[k] = true; order.push(k); }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  var want = isAll() ? -1 : (STORE_IX[state.store] === undefined ? -2 : STORE_IX[state.store]);
+  var ty = {}, ly = {};
+  var lyFrom = shiftYear(span.from, -1), lyTo = shiftYear(span.to, -1);
+  var rows = F.store_daily;
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i], day = F.days[r[0]];
+    if (want !== -1 && r[1] !== want) continue;
+    if (day >= span.from && day <= span.to){
+      var kt = keyOf(day); ty[kt] = (ty[kt] || 0) + r[2];
+    } else if (day >= lyFrom && day <= lyTo){
+      var kl = keyOf(shiftYear(day, 1)); ly[kl] = (ly[kl] || 0) + r[2];
+    }
+  }
+  return {
+    labels: order.map(fmt),
+    ty: order.map(function(k){ return ty[k] === undefined ? null : Math.round(ty[k]*100)/100; }),
+    ly: order.map(function(k){ return ly[k] === undefined ? null : Math.round(ly[k]*100)/100; }),
+    byDay: byDay,
+    partial: !isCustom()
+  };
+}
+
+var _cache = {};
+function P(which){
+  if (!isCustom()) return block().periods[keys()[which]];
+  var w = windowFor(which);
+  var ck = state.store + "|" + w.since + "|" + w.until;
+  if (!_cache[ck]) _cache[ck] = aggStore(w.since, w.until);
+  return _cache[ck];
+}
+function periodLabel(which){ return windowFor(which).label; }
 
 /* ---------- masthead ---------- */
 document.getElementById("m-through").textContent =
@@ -470,58 +710,95 @@ document.getElementById("m-through").textContent =
 document.getElementById("m-gen").textContent =
   new Date(D.meta.generated_at + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
 
-/* store chips, ordered by YTD net sales */
-(function buildChips(){
-  var box = document.getElementById("chips");
+/* location picker, ordered by year-to-date net sales */
+var storeSelect = document.getElementById("store-select");
+(function buildStorePicker(){
   var ordered = D.stores.all.slice().sort(function(a,b){
     return D.by_store[b].periods.ytd_ty.net_sales - D.by_store[a].periods.ytd_ty.net_sales;
   });
-  var names = [ALL].concat(ordered);
-  names.forEach(function(name){
-    var b = el("button","chip");
-    b.type = "button";
-    b.dataset.store = name;
-    b.setAttribute("aria-pressed", name === state.store ? "true" : "false");
-    if (name === ALL){
-      b.innerHTML = '<span class="dot"></span>All locations';
-    } else {
-      b.textContent = name.replace(/^Maceoo /,"");
-      b.title = name;
-    }
-    b.addEventListener("click", function(){ setStore(name); });
-    box.appendChild(b);
+  var all = document.createElement("option");
+  all.value = ALL;
+  all.textContent = "All locations";
+  storeSelect.appendChild(all);
+
+  var group = document.createElement("optgroup");
+  group.label = "By year-to-date net sales";
+  ordered.forEach(function(name){
+    var o = document.createElement("option");
+    o.value = name;
+    o.textContent = name;
+    group.appendChild(o);
   });
-  box.addEventListener("keydown", function(e){
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    var i = names.indexOf(state.store);
-    i += e.key === "ArrowRight" ? 1 : -1;
-    if (i < 0) i = names.length - 1;
-    if (i >= names.length) i = 0;
-    setStore(names[i]);
-    box.querySelector('[data-store="' + CSS.escape(names[i]) + '"]').focus();
-    e.preventDefault();
+  storeSelect.appendChild(group);
+  storeSelect.value = state.store;
+  storeSelect.addEventListener("change", function(){
+    state.store = storeSelect.value;
+    render();
   });
 })();
 
-function setStore(name){
-  state.store = name;
-  document.querySelectorAll("#chips .chip").forEach(function(c){
-    var on = c.dataset.store === name;
-    c.setAttribute("aria-pressed", on ? "true" : "false");
-    if (on) c.scrollIntoView({block:"nearest", inline:"nearest"});
+/* period picker, with the custom range revealed only when it is chosen */
+var modeSelect = document.getElementById("p-mode");
+var startInput = document.getElementById("d-start");
+var endInput = document.getElementById("d-end");
+var rangeNote = document.getElementById("range-note");
+
+(function buildPeriodPicker(){
+  var span = D.meta.daily_span;
+  [startInput, endInput].forEach(function(input){
+    input.min = span.first;
+    input.max = span.last;
   });
-  render();
-}
-["mtd","ytd"].forEach(function(p){
-  document.getElementById("p-" + p).addEventListener("click", function(){
-    state.period = p;
-    document.getElementById("p-mtd").setAttribute("aria-pressed", p === "mtd" ? "true":"false");
-    document.getElementById("p-ytd").setAttribute("aria-pressed", p === "ytd" ? "true":"false");
+  /* Open the custom range on the current month to date, so the first render
+     after switching shows something real rather than an empty form. */
+  state.from = D.meta.periods.mtd_ty.since;
+  state.to = D.meta.periods.mtd_ty.until;
+  startInput.value = state.from;
+  endInput.value = state.to;
+
+  modeSelect.value = state.period;
+  modeSelect.addEventListener("change", function(){
+    state.period = modeSelect.value;
+    syncRangeFields();
     render();
   });
-});
-document.getElementById("p-ytd").setAttribute("aria-pressed","true");
-document.getElementById("p-mtd").setAttribute("aria-pressed","false");
+  [startInput, endInput].forEach(function(input){
+    input.addEventListener("change", function(){
+      var from = startInput.value, to = endInput.value;
+      if (!from || !to) return;
+      if (from > to){                       /* keep the pair in order either way */
+        if (input === startInput) { to = from; endInput.value = to; }
+        else { from = to; startInput.value = from; }
+      }
+      state.from = clampDay(from);
+      state.to = clampDay(to);
+      startInput.value = state.from;
+      endInput.value = state.to;
+      _cache = {};
+      render();
+    });
+  });
+  syncRangeFields();
+})();
+
+function syncRangeFields(){
+  var on = isCustom();
+  document.getElementById("range-fields").hidden = !on;
+  document.getElementById("range-fields-2").hidden = !on;
+}
+
+function updateRangeNote(){
+  if (!isCustom()){
+    var w = windowFor("ty"), l = windowFor("ly");
+    rangeNote.innerHTML = "Comparing <b>" + esc(w.label) + "</b> against <b>" + esc(l.label) + "</b>.";
+    return;
+  }
+  var ty = windowFor("ty"), ly = windowFor("ly");
+  var days = Math.round((new Date(state.to) - new Date(state.from)) / 86400000) + 1;
+  rangeNote.innerHTML =
+    "<b>" + days + (days === 1 ? " day" : " days") + "</b>, against <b>" + esc(ly.label) +
+    "</b>. Totalled from daily figures, so client counts are visits.";
+}
 
 /* rail */
 (function buildRail(){
@@ -559,7 +836,9 @@ function renderKpis(){
     ["Orders", int(ty.orders), pct(ty.orders, ly.orders), int(ly.orders) + " last year"],
     ["Units per transaction", ty.upt.toFixed(2), pct(ty.upt, ly.upt), ly.upt.toFixed(2) + " last year"],
     ["Average order value", money0(ty.aov), pct(ty.aov, ly.aov), money0(ly.aov) + " last year"],
-    ["Returning clients", int(ty.returning_customers), pct(ty.returning_customers, ly.returning_customers), int(ty.new_customers) + " new"],
+    [isCustom() ? "Returning visits" : "Returning clients",
+      int(ty.returning_customers), pct(ty.returning_customers, ly.returning_customers),
+      int(ty.new_customers) + " new"],
     ["Discounts", money0(ty.discounts), pct(ty.discounts, ly.discounts),
       (ty.gross_sales ? (ty.discounts/ty.gross_sales*100).toFixed(1) : "0") + "% of gross"],
     ["Returns", money0(ty.returns), pct(ty.returns, ly.returns),
@@ -583,24 +862,14 @@ function renderKpis(){
 
 /* line chart: this year against last year, aligned by month of year */
 function renderTrend(){
-  var trend = block().trend;
-  var thisYear = D.meta.periods.ytd_ty.since.slice(0,4);
-  var lastYear = D.meta.periods.ytd_ly.since.slice(0,4);
-  var ty = [], ly = [];
-  for (var m = 1; m <= 12; m++){
-    var mm = (m < 10 ? "0" : "") + m;
-    var a = trend.filter(function(r){ return r.month === thisYear + "-" + mm; })[0];
-    var b = trend.filter(function(r){ return r.month === lastYear + "-" + mm; })[0];
-    ty.push(a ? a.net_sales : null);
-    ly.push(b ? b.net_sales : null);
-  }
-  var names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  var last = 0;
-  ty.forEach(function(v,i){ if (v !== null) last = i; });
-  var n = last + 1;
-  ty = ty.slice(0,n); ly = ly.slice(0,n);
-  /* The newest month is only complete up to the data date, so it is drawn open. */
-  var partial = Number(D.meta.periods.ytd_ty.until.slice(5,7)) === n;
+  var series = trendSeries();
+  var thisYear = windowFor("ty").since.slice(0,4);
+  var lastYear = windowFor("ly").since.slice(0,4);
+  var names = series.labels;
+  var ty = series.ty, ly = series.ly;
+  var n = names.length;
+  /* On a preset window the newest month is only part finished, so it is drawn open. */
+  var partial = series.partial && !series.byDay;
 
   var W = 560, H = 220, L = 52, R = 16, T = 14, B = 26;
   var max = 0;
@@ -622,9 +891,11 @@ function renderTrend(){
     p.push('<text x="' + (L-8) + '" y="' + (yy+3.5).toFixed(1) + '" text-anchor="end" font-size="10" ' +
            'font-family="IBM Plex Mono, monospace" fill="var(--muted)">' + money(v) + '</text>');
   }
+  var every = Math.max(1, Math.ceil(n / 12));   /* keep ticks readable at any span */
   for (var i = 0; i < n; i++){
+    if (i % every !== 0 && i !== n - 1) continue;
     p.push('<text x="' + x(i).toFixed(1) + '" y="' + (H-8) + '" text-anchor="middle" font-size="10" ' +
-           'font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">' + names[i] + '</text>');
+           'font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">' + esc(names[i]) + '</text>');
   }
   function path(arr){
     var d = "", open = false;
@@ -641,6 +912,7 @@ function renderTrend(){
     pair[0].forEach(function(v,i){
       if (v === null) return;
       var open = partial && i === n - 1;
+      if (n > 20 && !open) return;
       p.push('<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="' + (open ? 4 : 3) +
              '" fill="' + (open ? "var(--surface)" : "var(" + pair[1] + ")") +
              '" stroke="' + (open ? "var(" + pair[1] + ")" : "var(--surface)") + '" stroke-width="2"/>');
@@ -676,10 +948,12 @@ function renderTrend(){
   hit.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
 
   document.getElementById("trend-title").textContent =
-    isAll() ? "Net sales by month, all locations" : "Net sales by month, " + state.store;
+    "Net sales by " + (series.byDay ? "day" : "month") + ", " +
+    (isAll() ? "all locations" : state.store);
   document.getElementById("trend-cap").textContent =
-    names[0] + " to " + names[n-1] + ", " + thisYear + " against " + lastYear +
-    ". Solid is this year." + (partial ? " " + names[n-1] + " is part way through both years." : "");
+    names[0] + " to " + names[n-1] + ", " + thisYear + " against " + lastYear + ". " +
+    (series.byDay ? "One point per day. " : "") + "Solid is this year." +
+    (partial ? " " + names[n-1] + " is part way through both years." : "");
 }
 
 /* grouped bars: new against returning, both years */
@@ -742,14 +1016,15 @@ function renderMix(){
   var rate = ty.customers ? ty.returning_customers/ty.customers*100 : 0;
   var rateLy = ly.customers ? ly.returning_customers/ly.customers*100 : 0;
   document.getElementById("mix-cap").textContent =
-    "Repeat rate " + rate.toFixed(1) + "% this year against " + rateLy.toFixed(1) + "% last year.";
+    (isCustom() ? "Share of visits from returning clients " : "Repeat rate ") +
+    rate.toFixed(1) + "% this year against " + rateLy.toFixed(1) + "% last year." +
+    (isCustom() ? " A client who came in on several days counts once per day." : "");
 }
 
 function renderStoreTable(){
-  var k = keys();
-  var rows = D.store_table[k.ty].slice();
+  var rows = storeRows("ty").slice();
   var lyMap = {};
-  D.store_table[k.ly].forEach(function(r){ lyMap[r.store] = r; });
+  storeRows("ly").forEach(function(r){ lyMap[r.store] = r; });
   var max = rows.length ? rows[0].net_sales : 1;
   var head = ["","Location","Net sales","","vs LY","Orders","UPT","AOV","Returning","New"];
   var html = "<thead><tr>" + head.map(function(h,i){
@@ -775,39 +1050,55 @@ function renderStoreTable(){
   });
   document.getElementById("storetable").innerHTML = html + "</tbody>";
   document.getElementById("storetable-cap").textContent =
-    periodLabel("ty") + " against " + periodLabel("ly") + ". Click a chip above to filter every section to one door.";
+    periodLabel("ty") + " against " + periodLabel("ly") +
+    ". Pick a location above to filter every section to one door.";
 }
 
 /* ---------- section 2 ---------- */
 function staffRows(){
+  if (isCustom()){
+    var t = windowFor("ty"), l = windowFor("ly");
+    var ck = "T|" + state.store + "|" + t.since + "|" + t.until;
+    if (!_cache[ck]){
+      /* Orders with no POS staff on them are web sales, not a salesperson. */
+      _cache[ck] = aggStaff(t.since, t.until, l.since, l.until)
+        .filter(function(r){ return r.staff !== "Unattributed"; })
+        .filter(function(r){ return r.ty.net_sales > 0 || r.ly.net_sales > 0; })
+        .sort(function(a,b){ return b.ty.net_sales - a.ty.net_sales; });
+    }
+    return _cache[ck];
+  }
   var k = keys();
-  var rows = block().staff.slice().filter(function(s){
+  return block().staff.slice().filter(function(s){
     return s[k.ty].net_sales > 0 || s[k.ly].net_sales > 0;
-  });
-  rows.sort(function(a,b){ return b[k.ty].net_sales - a[k.ty].net_sales; });
-  return rows;
+  }).sort(function(a,b){ return b[k.ty].net_sales - a[k.ty].net_sales; });
+}
+
+/* One accessor for both shapes: preset rows key by window name, custom by ty/ly. */
+function SP(row, which){
+  return isCustom() ? row[which === "ty" ? "ty" : "ly"] : row[keys()[which]];
 }
 
 function renderSpotlight(){
-  var k = keys(), rows = staffRows(), box = document.getElementById("spotlight");
+  var rows = staffRows(), box = document.getElementById("spotlight");
   box.innerHTML = "";
   if (!rows.length){
     box.appendChild(noteCard("No salesperson attribution", "No orders in this window carry a POS staff member for this selection."));
     return;
   }
   var mvp = rows[0];
-  var withLy = rows.filter(function(r){ return r[k.ly].net_sales > 0 && r[k.ty].net_sales > 0; });
-  var risers = withLy.slice().sort(function(a,b){ return pct(b[k.ty].net_sales,b[k.ly].net_sales) - pct(a[k.ty].net_sales,a[k.ly].net_sales); });
+  var withLy = rows.filter(function(r){ return SP(r,"ly").net_sales > 0 && SP(r,"ty").net_sales > 0; });
+  var risers = withLy.slice().sort(function(a,b){ return pct(SP(b,"ty").net_sales,SP(b,"ly").net_sales) - pct(SP(a,"ty").net_sales,SP(a,"ly").net_sales); });
   var riser = risers[0];
   var faller = risers[risers.length-1];
-  var basket = rows.slice().filter(function(r){ return r[k.ty].orders >= 20; })
-                   .sort(function(a,b){ return b[k.ty].upt - a[k.ty].upt; })[0] || rows[0];
+  var basket = rows.slice().filter(function(r){ return SP(r,"ty").orders >= 20; })
+                   .sort(function(a,b){ return SP(b,"ty").upt - SP(a,"ty").upt; })[0] || rows[0];
 
   [
-    ["MVP this period", mvp, "Top net sales", function(r){ return money2(r[k.ty].net_sales); }],
-    ["Biggest riser", riser, "Growth against last year", function(r){ return pctText(pct(r[k.ty].net_sales, r[k.ly].net_sales)); }],
-    ["Needs a plan", faller, "Furthest behind last year", function(r){ return pctText(pct(r[k.ty].net_sales, r[k.ly].net_sales)); }],
-    ["Best basket builder", basket, "Highest units per transaction", function(r){ return r[k.ty].upt.toFixed(2) + " UPT"; }]
+    ["MVP this period", mvp, "Top net sales", function(r){ return money2(SP(r,"ty").net_sales); }],
+    ["Biggest riser", riser, "Growth against last year", function(r){ return pctText(pct(SP(r,"ty").net_sales, SP(r,"ly").net_sales)); }],
+    ["Needs a plan", faller, "Furthest behind last year", function(r){ return pctText(pct(SP(r,"ty").net_sales, SP(r,"ly").net_sales)); }],
+    ["Best basket builder", basket, "Highest units per transaction", function(r){ return SP(r,"ty").upt.toFixed(2) + " UPT"; }]
   ].forEach(function(c){
     if (!c[1]) return;
     var r = c[1], card = el("div","card");
@@ -817,11 +1108,11 @@ function renderSpotlight(){
       (isAll() && r.store ? " · " + r.store.replace(/^Maceoo /,"") +
         (r.doors > 1 ? " +" + (r.doors - 1) + " more" : "") : "")));
     var dl = el("dl");
-    [["Net sales", money2(r[k.ty].net_sales)],
-     ["Orders", int(r[k.ty].orders)],
-     ["UPT", r[k.ty].upt.toFixed(2)],
-     ["AOV", money2(r[k.ty].aov)],
-     ["Last year", money2(r[k.ly].net_sales)]].forEach(function(p){
+    [["Net sales", money2(SP(r,"ty").net_sales)],
+     ["Orders", int(SP(r,"ty").orders)],
+     ["UPT", SP(r,"ty").upt.toFixed(2)],
+     ["AOV", money2(SP(r,"ty").aov)],
+     ["Last year", money2(SP(r,"ly").net_sales)]].forEach(function(p){
       dl.appendChild(el("dt",null,p[0]));
       dl.appendChild(el("dd",null,p[1]));
     });
@@ -831,8 +1122,8 @@ function renderSpotlight(){
 }
 
 function renderStaffTable(){
-  var k = keys(), rows = staffRows();
-  var max = rows.length ? rows[0][k.ty].net_sales : 1;
+  var rows = staffRows();
+  var max = rows.length ? SP(rows[0],"ty").net_sales : 1;
   var head = ["","Salesperson","Net sales","","vs LY","Orders","UPT","AOV","LY sales"];
   var html = "<thead><tr>" + head.map(function(h,i){
     return "<th" + (i===0?' class="rank"':"") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>";
@@ -840,20 +1131,20 @@ function renderStaffTable(){
     html += '<tr><td colspan="9" class="empty">No salesperson rows for this selection.</td></tr>';
   }
   rows.forEach(function(r,i){
-    var d = pct(r[k.ty].net_sales, r[k.ly].net_sales);
-    var w = max ? Math.max(1, r[k.ty].net_sales/max*100) : 0;
+    var d = pct(SP(r,"ty").net_sales, SP(r,"ly").net_sales);
+    var w = max ? Math.max(1, SP(r,"ty").net_sales/max*100) : 0;
     html += '<tr>' +
       '<td class="rank">' + (i+1) + '</td>' +
       '<td><span class="name">' + esc(r.staff || "Unattributed") + '</span>' +
         (isAll() ? '<span class="where">' + esc(r.store || "Online") +
           (r.doors > 1 ? " and " + (r.doors - 1) + " more" : "") + '</span>' : '') + '</td>' +
-      '<td class="num">' + money2(r[k.ty].net_sales) + '</td>' +
+      '<td class="num">' + money2(SP(r,"ty").net_sales) + '</td>' +
       '<td class="barcell"><span class="bartrack"><span class="bar" style="width:' + w.toFixed(1) + '%"></span></span></td>' +
       '<td class="num delta ' + pctClass(d) + '">' + pctText(d) + '</td>' +
-      '<td class="num">' + int(r[k.ty].orders) + '</td>' +
-      '<td class="num">' + r[k.ty].upt.toFixed(2) + '</td>' +
-      '<td class="num">' + money2(r[k.ty].aov) + '</td>' +
-      '<td class="num" style="color:var(--muted)">' + money2(r[k.ly].net_sales) + '</td>' +
+      '<td class="num">' + int(SP(r,"ty").orders) + '</td>' +
+      '<td class="num">' + SP(r,"ty").upt.toFixed(2) + '</td>' +
+      '<td class="num">' + money2(SP(r,"ty").aov) + '</td>' +
+      '<td class="num" style="color:var(--muted)">' + money2(SP(r,"ly").net_sales) + '</td>' +
       '</tr>';
   });
   document.getElementById("stafftable").innerHTML = html + "</tbody>";
@@ -911,7 +1202,8 @@ function renderConversion(){
   [["Transactions", int(ty.orders), pct(ty.orders, ly.orders), "orders in " + periodLabel("ty")],
    ["Units sold", int(ty.units), pct(ty.units, ly.units), "net of returns"],
    ["Value per transaction", money2(ty.aov), pct(ty.aov, ly.aov), "average order value"],
-   ["Clients identified", int(ty.customers), pct(ty.customers, ly.customers),
+   [isCustom() ? "Client visits identified" : "Clients identified",
+     int(ty.customers), pct(ty.customers, ly.customers),
      (ty.orders ? (ty.customers/ty.orders*100).toFixed(0) : "0") + "% of orders carry a client"]
   ].forEach(function(r){
     var c = el("div","card");
@@ -948,7 +1240,8 @@ function renderBehaviour(){
   var ordTy = ty.customers ? ty.orders/ty.customers : 0;
   [["Spend per client", money2(spendTy), pct(spendTy, spendLy), money2(spendLy) + " last year"],
    ["Units per client", unitsTy.toFixed(1), pct(unitsTy, unitsLy), unitsLy.toFixed(1) + " last year"],
-   ["Repeat rate", repTy.toFixed(1) + "%", pct(repTy, repLy), repLy.toFixed(1) + "% last year"],
+   [isCustom() ? "Returning share of visits" : "Repeat rate",
+    repTy.toFixed(1) + "%", pct(repTy, repLy), repLy.toFixed(1) + "% last year"],
    ["Orders per client", ordTy.toFixed(2), null, int(ty.customers) + " clients served"]
   ].forEach(function(r){
     var c = el("div","card");
@@ -963,10 +1256,9 @@ function renderBehaviour(){
 }
 
 function renderClientTable(){
-  var k = keys();
   var lyMap = {};
-  D.store_table[k.ly].forEach(function(r){ lyMap[r.store] = r; });
-  var rows = D.store_table[k.ty].slice().filter(function(r){ return r.customers > 0; });
+  storeRows("ly").forEach(function(r){ lyMap[r.store] = r; });
+  var rows = storeRows("ty").slice().filter(function(r){ return r.customers > 0; });
   rows.forEach(function(r){
     r._spend = r.customers ? r.net_sales/r.customers : 0;
     r._rep = r.customers ? r.returning_customers/r.customers*100 : 0;
@@ -993,8 +1285,8 @@ function renderClientTable(){
   });
   document.getElementById("clienttable").innerHTML = html + "</tbody>";
   document.getElementById("client-cap").textContent =
-    "Ranked by spend per identified client, " + periodLabel("ty") +
-    ". Only orders with a client attached count toward these figures.";
+    "Ranked by spend per identified " + (isCustom() ? "client visit" : "client") + ", " +
+    periodLabel("ty") + ". Only orders with a client attached count toward these figures.";
 }
 
 /* ---------- section 6 ---------- */
@@ -1172,6 +1464,7 @@ function renderMarketing(){
 
 /* ---------- render ---------- */
 function render(){
+  updateRangeNote();
   renderKpis();
   renderTrend();
   renderMix();
